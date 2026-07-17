@@ -1,0 +1,170 @@
+/*
+ * Identidade Visual City Inc — tokens e tipografia oficiais
+ * Fonte: Manual de Marca City 2024 (p.47 paleta, p.48 tipografia, p.49 cores em textos, p.43 logo)
+ * Documentação: docs/11-identidade-visual.md
+ */
+
+/* ---------- Tipografia institucional ---------- */
+/* Títulos & destaque: Halyard Micro e IvyPresto Display (manual p.48) */
+/* Textos corridos, legendas e observações: Halyard Text Book (manual p.48) */
+/* Fallback obrigatório do manual: Arial Bold (títulos) / Arial Regular (corridos) */
+
+@font-face {
+  font-family: "Halyard Micro";
+  src: url("./fonts/halyard/Halyard Micro Book.ttf") format("truetype");
+  font-weight: 350;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Halyard Micro";
+  src: url("./fonts/halyard/Halyard Micro Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Halyard Micro";
+  src: url("./fonts/halyard/Halyard Micro SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Halyard Text";
+  src: url("./fonts/halyard/Halyard Text Book Regular.ttf") format("truetype");
+  font-weight: 350;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Halyard Text";
+  src: url("./fonts/halyard/Halyard Text Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Halyard Text";
+  src: url("./fonts/halyard/Halyard Text Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Halyard Text";
+  src: url("./fonts/halyard/Halyard Text SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Halyard Display";
+  src: url("./fonts/halyard/Halyard Display Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Halyard Display";
+  src: url("./fonts/halyard/Halyard Display SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IvyPresto Display";
+  src: url("./fonts/ivypresto/IvyPrestoDisplay-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IvyPresto Display";
+  src: url("./fonts/ivypresto/IvyPrestoDisplay-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IvyPresto Display";
+  src: url("./fonts/ivypresto/IvyPrestoDisplay-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- Tokens ---------- */
+:root {
+  /* Paleta institucional (Manual de Marca 2024, p.47) */
+  --city-laranja: #ff8700;        /* PANTONE 151 C  — cor principal da marca */
+  --city-laranja-claro: #fdad53;  /* PANTONE 804 C  — laranja de apoio */
+  --city-laranja-suave: #f8d0a3;  /* PANTONE 7507 C — laranja pastel */
+  --city-preto: #020202;          /* PANTONE BLACK 3 C */
+  --city-grafite: #383838;        /* PANTONE BLACK 7 C — cor de texto corrido sobre claro */
+  --city-chumbo: #454848;         /* PANTONE 7540 C */
+  --city-cinza: #696d6d;          /* PANTONE 424 C */
+  --city-branco: #fafafa;         /* PANTONE 9345 C — branco institucional */
+
+  /* Famílias tipográficas (fallback Arial conforme manual p.48) */
+  --font-title: "Halyard Micro", Arial, sans-serif;        /* títulos & destaque */
+  --font-title-serif: "IvyPresto Display", Georgia, serif; /* títulos editoriais/destaque */
+  --font-display: "Halyard Display", Arial, sans-serif;    /* números e headings grandes */
+  --font-text: "Halyard Text", Arial, sans-serif;          /* corridos, legendas, observações */
+
+  /* Tokens semânticos da aplicação (mapeiam a paleta institucional) */
+  --color-header-bg: var(--city-preto);
+  --color-accent: var(--city-laranja);
+  --color-accent-hover: #e67a00;            /* derivado — não consta no manual */
+  --color-accent-border: var(--city-laranja-claro);
+
+  --color-page-bg: var(--city-branco);
+  --color-card-bg: #ffffff;
+  --color-border: #e5e7eb;                  /* funcional — não faz parte da paleta */
+
+  --color-text: var(--city-grafite);
+  --color-text-muted: var(--city-cinza);
+  --color-text-header: #ffffff;
+
+  /* Cores funcionais de status (uso funcional; verde/vermelho/azul não pertencem à paleta) */
+  --color-status-ok: #16a34a;               /* sucesso genérico */
+  --color-status-pending: var(--city-laranja);
+  --color-selection-bg: #fdf2e3;            /* linha selecionada — derivado do laranja suave */
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+
+  /* Status de NF do projeto nf-pjs: Pendente | Enviado | Recebido
+     (semáforo funcional — ver docs/11-identidade-visual.md §4) */
+  --color-status-pendente: var(--city-laranja); /* aguardando NF (sem chamado no período) */
+  --color-status-pendente-soft: #fff3e0;
+  --color-status-enviado: #2563eb;              /* chamado aberto — informativo (funcional) */
+  --color-status-enviado-soft: #e8f0fe;
+  --color-status-recebido: #16a34a;             /* chamado finalizado — sucesso */
+  --color-status-recebido-soft: #e7f6ec;
+
+  /* Apoio visual / Superfícies secundárias */
+  --color-surface-subtle: #f9fafb;
+  --color-accent-soft: #fff3e0;
+  --color-bg-muted: #f3f4f6;
+
+  /* Forma */
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Base ---------- */
+body {
+  font-family: var(--font-text);
+  font-weight: 400;
+  color: var(--color-text);
+  background: var(--color-page-bg);
+}
+
+h1, h2, h3, h4, .title {
+  font-family: var(--font-title);
+  font-weight: 600;
+}

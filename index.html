@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Inc — Controle de Recebimento de Notas Fiscais (PJ)</title>
+  <meta name="description" content="Dashboard interativo para acompanhamento de Notas Fiscais de fornecedores PJ integrados ao Tomticket.">
+  
+  <!-- Favicon oficial da City -->
+  <link rel="icon" type="image/png" href="public/brand/logos/PIN.png" />
+  
+  <!-- CSS oficial da marca City -->
+  <link rel="stylesheet" href="public/brand/brand.css" />
+  <!-- CSS customizado da aplicação -->
+  <link rel="stylesheet" href="app.css" />
+
+  <!-- Biblioteca de Exportação Excel via CDN (SheetJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- Header institucional City (manual p.32-43) -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-wrapper">
+        <!-- Logo preferencial negativa para fundos escuros, respeitando área de proteção -->
+        <img src="public/brand/logos/CITY_SOLUCOES_UBARNAS_VERSAO_PREFERENCIAL_NEGATIVA.png" 
+             alt="City Soluções Urbanas" 
+             class="city-logo" />
+      </div>
+      <div class="header-title">
+        <span>Gestão de Notas Fiscais (PJ)</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-content">
+    <!-- Título principal semântico (SEO) -->
+    <section class="page-title-section">
+      <h1 id="main-title">Status de Recebimento por Competência</h1>
+      <p class="subtitle">Acompanhe a entrega de Notas Fiscais dos fornecedores integrados via Tomticket.</p>
+    </section>
+
+    <!-- Navegação por abas -->
+    <nav class="tabs-nav" id="tabs-nav">
+      <button class="tab-btn active" data-tab="status">Status</button>
+      <button class="tab-btn" data-tab="mensagens">Mensagens</button>
+    </nav>
+
+    <!-- ABA: STATUS -->
+    <div id="tab-status" class="tab-panel">
+
+    <!-- Cards de Resumo (rollup consolidado) -->
+    <section class="summary-cards" id="summary-section">
+      <div class="card card-total">
+        <div class="card-body">
+          <span class="card-label">Total de Fornecedores Ativos</span>
+          <span class="card-value" id="count-total">0</span>
+        </div>
+      </div>
+      <div class="card card-status card-pendente" data-filter="Pendente">
+        <div class="card-body">
+          <span class="card-label">Pendentes</span>
+          <span class="card-value" id="count-pendente">0</span>
+        </div>
+        <div class="card-indicator bg-pendente"></div>
+      </div>
+      <div class="card card-status card-enviado" data-filter="Enviado">
+        <div class="card-body">
+          <span class="card-label">Enviados</span>
+          <span class="card-value" id="count-enviado">0</span>
+        </div>
+        <div class="card-indicator bg-enviado"></div>
+      </div>
+      <div class="card card-status card-recebido" data-filter="Recebido">
+        <div class="card-body">
+          <span class="card-label">Recebidos</span>
+          <span class="card-value" id="count-recebido">0</span>
+        </div>
+        <div class="card-indicator bg-recebido"></div>
+      </div>
+      <div class="card card-status card-manual" data-filter="Tratamento Manual">
+        <div class="card-body">
+          <span class="card-label">Tratamento Manual</span>
+          <span class="card-value" id="count-manual">0</span>
+        </div>
+        <div class="card-indicator bg-manual"></div>
+      </div>
+    </section>
+
+    <!-- Controles, filtros e buscas -->
+    <section class="controls-panel">
+      <!-- Filtros Obrigatórios de Competência (Ano/Mês) -->
+      <div class="competence-selector">
+        <div class="form-group">
+          <label for="select-ano">Ano</label>
+          <select id="select-ano" class="form-control">
+            <option value="2026" selected>2026</option>
+            <option value="2025">2025</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="select-mes">Mês</label>
+          <select id="select-mes" class="form-control">
+            <!-- Valores serão preenchidos ou selecionados dinamicamente no script -->
+            <option value="01">Janeiro (01)</option>
+            <option value="02">Fevereiro (02)</option>
+            <option value="03">Março (03)</option>
+            <option value="04">Abril (04)</option>
+            <option value="05">Maio (05)</option>
+            <option value="06">Junho (06)</option>
+            <option value="07" selected>Julho (07)</option>
+            <option value="08">Agosto (08)</option>
+            <option value="09">Setembro (09)</option>
+            <option value="10">Outubro (10)</option>
+            <option value="11">Novembro (11)</option>
+            <option value="12">Dezembro (12)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Busca Textual e Filtro de Status Rápido -->
+      <div class="search-filters">
+        <div class="form-group search-group">
+          <label for="search-input">Buscar fornecedor</label>
+          <input type="text" id="search-input" class="form-control" placeholder="Buscar por Nome, CNPJ ou E-mail..." />
+        </div>
+        <div class="form-group status-filter-group">
+          <label for="status-filter">Filtrar por Status</label>
+          <select id="status-filter" class="form-control">
+            <option value="all" selected>Todos os status</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Enviado">Enviado</option>
+            <option value="Recebido">Recebido</option>
+            <option value="Tratamento Manual">Tratamento Manual</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Módulo de Exportação (Tarefa 3.3) — somente Excel -->
+      <div class="export-actions">
+        <span class="export-label">Exportar dados filtrados</span>
+        <div class="export-buttons">
+          <button id="btn-export-xlsx" class="btn btn-secondary">EXCEL</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grid de Dados (DataGrid / Table) -->
+    <section class="datagrid-section">
+      <div class="table-responsive">
+        <table class="datagrid-table" id="fornecedores-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="apelido">Fornecedor / PJ <span class="sort-icon">↕</span></th>
+              <th class="sortable" data-sort="nome">Nome Empresa <span class="sort-icon">↕</span></th>
+              <th class="sortable" data-sort="funcionario">Nome Funcionário <span class="sort-icon">↕</span></th>
+              <th class="sortable" data-sort="cnpj">CNPJ <span class="sort-icon">↕</span></th>
+              <th>E-mail</th>
+              <th class="sortable" data-sort="status">Status <span class="sort-icon">↕</span></th>
+              <th>Nº Chamado</th>
+              <th>Abertura</th>
+              <th>Finalização</th>
+              <th>Tipo de Lançamento</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Renderizado dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+      <!-- Estado vazio ou carregando -->
+      <div id="table-empty" class="table-empty-state hidden">
+        <p>Nenhum fornecedor encontrado para os filtros selecionados nesta competência.</p>
+      </div>
+    </section>
+
+    </div><!-- /tab-status -->
+
+    <!-- ABA: MENSAGENS (histórico de alertas enviados) -->
+    <div id="tab-mensagens" class="tab-panel hidden">
+      <section class="datagrid-section">
+        <div class="messages-header">
+          <h2>Mensagens Enviadas</h2>
+          <p class="subtitle">Histórico de alertas disparados aos fornecedores (regras D-3, D, D+1, D+3).</p>
+        </div>
+        <div class="table-responsive">
+          <table class="datagrid-table" id="mensagens-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>CNPJ</th>
+                <th>Regra</th>
+                <th>Data/Hora de Envio</th>
+                <th>Ano/Mês</th>
+              </tr>
+            </thead>
+            <tbody id="mensagens-body">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+        <div id="mensagens-empty" class="table-empty-state hidden">
+          <p>Nenhuma mensagem enviada.</p>
+        </div>
+      </section>
+    </div><!-- /tab-mensagens -->
+  </main>
+
+  <!-- Painel Interativo de Teste (Barra Lateral Flutuante para testes de QA e avaliação) -->
+  <div class="test-panel collapsed" id="test-panel">
+    <button class="test-panel-toggle" id="btn-test-toggle">
+      <span class="toggle-icon">⚙️</span>
+      <span class="toggle-text">Painel de Simulação (QA)</span>
+    </button>
+    <div class="test-panel-content">
+      <h3>Simulação de Eventos em Tempo Real</h3>
+      <p class="panel-desc">Simule ações dos fornecedores e da integração Tomticket para ver o cálculo do motor de status na UI imediatamente.</p>
+      
+      <div class="sim-group">
+        <h4>1. Desambiguação (Carlos Santos)</h4>
+        <label for="sim-cnpj-select">CNPJ extraído do chamado #19166:</label>
+        <select id="sim-cnpj-select" class="form-control">
+          <option value="17928511000170" selected>SPE Praça do Sol (Contrato 102)</option>
+          <option value="14489313000160">CITY INCORPORADORA (Contrato 101)</option>
+          <option value="00000000000000">CNPJ Inválido (Cair em Manual)</option>
+        </select>
+        <button id="btn-sim-update-cnpj" class="btn btn-primary btn-sm">Mudar CNPJ</button>
+      </div>
+
+      <div class="sim-group">
+        <h4>2. Ações do Tomticket</h4>
+        <label for="sim-chamado-select">Selecionar chamado:</label>
+        <select id="sim-chamado-select" class="form-control">
+          <!-- Populado via script -->
+        </select>
+        <div class="sim-button-row">
+          <button id="btn-sim-toggle-situation" class="btn btn-secondary btn-sm">Alternar Aberto/Finalizado</button>
+          <button id="btn-sim-delete-chamado" class="btn id-danger-btn btn-sm">Deletar Chamado</button>
+        </div>
+      </div>
+
+      <div class="sim-group">
+        <h4>3. Criar Novo Chamado</h4>
+        <div class="form-group-sm">
+          <label for="new-chamado-email">E-mail do Fornecedor:</label>
+          <select id="new-chamado-email" class="form-control">
+            <!-- Populado via script com emails dos cadastrados -->
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label for="new-chamado-tipo">Tipo de Lançamento:</label>
+          <select id="new-chamado-tipo" class="form-control">
+            <option value="Contratual">Contratual</option>
+            <option value="Reembolso plano de saude">Reembolso plano de saude (não normalizado)</option>
+            <option value="Ambas">Ambas</option>
+          </select>
+        </div>
+        <div class="form-group-sm">
+          <label for="new-chamado-referencia">Mês Referente:</label>
+          <input type="text" id="new-chamado-referencia" class="form-control" value="07-2026" />
+        </div>
+        <button id="btn-sim-create-chamado" class="btn btn-primary btn-sm btn-block">Adicionar Chamado</button>
+      </div>
+
+      <button id="btn-sim-reset" class="btn btn-outline-danger btn-sm btn-block">Resetar Base do Mock</button>
+    </div>
+  </div>
+
+  <!-- Script principal como módulo ES -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
