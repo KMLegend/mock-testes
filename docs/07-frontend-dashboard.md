@@ -14,7 +14,8 @@ status: normativo
 
 ## 1. Tela principal (Tarefa 3.1)
 
-### Filtros obrigatórios
+### Filtros obrigatórios (Painel de Filtros HUD)
+- O painel de filtros (HUD) contendo Ano, Mês, Busca Textual, Filtro por Status e botão Excel está posicionado no topo, **acima das abas**, aplicando-se **simultaneamente a ambas as abas existentes** (Status e Mensagens).
 - Seletor de **Ano** (obrigatório).
 - Seletor de **Mês** (obrigatório).
 - A combinação compõe a competência: **exibição `MM/AAAA`**, **sistêmico `MM-AAAA`** (A-19). Chamada: `GET /v2/notas-fiscais/status?mesAnoReferencia=07-2026`, com **JWT M2M**. Ver `12` §3.
@@ -70,9 +71,9 @@ O Dashboard tem duas abas: **Status** (grid de fornecedores) e **Mensagens** (to
 `Fornecedor / PJ`, `Nome Empresa`, `Nome Funcionário`, `CNPJ`, `E-mail`, `Status`, `Nº Chamado`, `Abertura`, `Finalização`, `Tipo de Lançamento`, `Link`.
 
 ### Abas (Sheets)
-- Aba principal com os dados filtrados.
-- **Aba específica para os contratos** (Tipo de Lançamento `Contratual`), conforme Tarefa 3.3.
-  > Critério a confirmar (D-07): registros `Contratual` (e/ou `Ambas` que envolvam contrato). Ver `09`.
+- **Status Notas Fiscais**: Aba principal contendo as notas fiscais dos fornecedores, filtradas pelos parâmetros ativos no painel.
+- **Contratos**: Aba específica para os contratos (Tipo de Lançamento `Contratual` ou `Ambas`), filtrada em conformidade com os parâmetros ativos.
+- **Mensagens Enviadas**: Aba com o histórico de alertas enviados aos fornecedoresPJ, filtrada pelos parâmetros do painel.
 
 ### Formatação
 - Datas em formato legível (`DD/MM/AAAA`).

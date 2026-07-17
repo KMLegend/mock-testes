@@ -241,7 +241,7 @@ texto, e-mail com caixa diferente, competência divergente, 1 vs. >1 contrato). 
 - [ ] `TomticketSyncUseCase` — upsert idempotente por **`id_tomticket`**; casamento por **email** (A-14).
 - [ ] `StatusService` (Left Join da §4, junção por **email**) + `/status` e `/status/resumo`.
 - [ ] `AlertaRepository` + `GET /comunicados` (lê `ALERTA`; funciona sem Fato).
-- [ ] Exportação `/export` em **Excel `.xlsx`** (`07` §3); aba principal + aba de contratos.
+- [ ] Exportação `/export` em **Excel `.xlsx`** (`07` §3); abas: Status Notas Fiscais, Contratos e Mensagens Enviadas.
 - [ ] `GET /fornecedores`; rotas em `main.py` (tag "Notas Fiscais PJ", JWT); injetores em `dependencies.py`.
 - [ ] Envelope de resposta padrão (`06` §5) e Soft Delete em todas as leituras.
 

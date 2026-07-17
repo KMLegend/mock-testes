@@ -170,6 +170,7 @@ async function computeStatusEngine() {
   state.gridRows = rows;
   updateSummaryCounters();
   renderGrid();
+  renderMensagens();
 }
 
 // --- ATUALIZAR CONTADORES DO TOPO (ROLLUP CONSOLIDADO) ---
@@ -318,13 +319,62 @@ async function renderMensagens() {
   // Busca via camada de dados (dataProvider) — trocável por API na Fase 2
   const alertas = await listMensagens();
 
-  if (alertas.length === 0) {
+  // Calcula o status consolidado de cada fornecedor para a competência atual (mesma regra de rollup)
+  const providerStatus = {};
+  const rollup = {};
+  for (const row of state.gridRows) {
+    const email = normalizeEmail(row.email);
+    if (!rollup[email]) {
+      rollup[email] = [];
+    }
+    rollup[email].push(row.status);
+  }
+  for (const [email, statuses] of Object.entries(rollup)) {
+    if (statuses.includes('Tratamento Manual')) {
+      providerStatus[email] = 'Tratamento Manual';
+    } else if (statuses.includes('Pendente')) {
+      providerStatus[email] = 'Pendente';
+    } else if (statuses.includes('Enviado')) {
+      providerStatus[email] = 'Enviado';
+    } else if (statuses.every(s => s === 'Recebido')) {
+      providerStatus[email] = 'Recebido';
+    } else {
+      providerStatus[email] = 'Enviado';
+    }
+  }
+
+  // 1. Aplica filtros
+  const filtered = alertas.filter(al => {
+    // Filtro de Competência (Ano/Mês)
+    const targetComp = `${state.selectedMonth}-${state.selectedYear}`;
+    if (al.mes_ano_referencia !== targetComp) return false;
+
+    // Filtro de Busca (Nome, CNPJ ou E-mail)
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      const matchNome = al.nome.toLowerCase().includes(q);
+      const matchCnpj = (al.cnpj || '').includes(q);
+      const matchEmail = al.email.toLowerCase().includes(q);
+      if (!matchNome && !matchCnpj && !matchEmail) return false;
+    }
+
+    // Filtro de Status (conforme o status do fornecedor na competência corrente)
+    if (state.statusFilter !== 'all') {
+      const emailNorm = normalizeEmail(al.email);
+      const currentStatus = providerStatus[emailNorm] || 'Pendente';
+      if (currentStatus !== state.statusFilter) return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
     emptyState.classList.remove('hidden');
     return;
   }
   emptyState.classList.add('hidden');
 
-  alertas.forEach(al => {
+  filtered.forEach(al => {
     const tr = document.createElement('tr');
     const cnpjFmt = (al.cnpj || '').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
     tr.innerHTML = `
@@ -343,13 +393,14 @@ async function renderMensagens() {
 
 
 // 2. Exportar para XLSX (Excel com Abas)
-function exportToXLSX() {
+async function exportToXLSX() {
   if (typeof XLSX === 'undefined') {
     alert("Biblioteca SheetJS não carregou. Tente novamente em instantes.");
     return;
   }
   
   const filteredRows = getFilteredRowsForExport();
+  const filteredAlerts = await getFilteredAlertsForExport();
   
   // Aba 1: Dados Gerais (mesmas colunas da tabela)
   const dataSheetRows = filteredRows.map(row => ({
@@ -379,14 +430,26 @@ function exportToXLSX() {
       "Status": row.status,
       "Nº Chamado": row.protocol
     }));
+
+  // Aba 3: Mensagens Enviadas (Histórico de alertas)
+  const alertsSheetRows = filteredAlerts.map(al => ({
+    "Nome": al.nome,
+    "E-mail": al.email,
+    "CNPJ": (al.cnpj || '').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"),
+    "Regra": al.regra,
+    "Data/Hora de Envio": formatDate(al.data_hora_envio),
+    "Ano/Mês": (al.mes_ano_referencia || '').replace('-', '/')
+  }));
     
   const wb = XLSX.utils.book_new();
   
   const wsData = XLSX.utils.json_to_sheet(dataSheetRows);
   const wsContracts = XLSX.utils.json_to_sheet(contractSheetRows);
+  const wsAlerts = XLSX.utils.json_to_sheet(alertsSheetRows);
   
   XLSX.utils.book_append_sheet(wb, wsData, "Status Notas Fiscais");
   XLSX.utils.book_append_sheet(wb, wsContracts, "Contratos");
+  XLSX.utils.book_append_sheet(wb, wsAlerts, "Mensagens Enviadas");
   
   XLSX.writeFile(wb, `status_notas_${state.selectedMonth}_${state.selectedYear}.xlsx`);
 }
@@ -409,6 +472,55 @@ function getFilteredRowsForExport() {
       const matchProtocol = row.protocol.includes(q);
       return matchNome || matchCnpj || matchEmail || matchProtocol;
     }
+    return true;
+  });
+}
+
+// Retorna os alertas filtrados ativamente na UI
+async function getFilteredAlertsForExport() {
+  const alertas = await listMensagens();
+
+  const providerStatus = {};
+  const rollup = {};
+  for (const row of state.gridRows) {
+    const email = normalizeEmail(row.email);
+    if (!rollup[email]) {
+      rollup[email] = [];
+    }
+    rollup[email].push(row.status);
+  }
+  for (const [email, statuses] of Object.entries(rollup)) {
+    if (statuses.includes('Tratamento Manual')) {
+      providerStatus[email] = 'Tratamento Manual';
+    } else if (statuses.includes('Pendente')) {
+      providerStatus[email] = 'Pendente';
+    } else if (statuses.includes('Enviado')) {
+      providerStatus[email] = 'Enviado';
+    } else if (statuses.every(s => s === 'Recebido')) {
+      providerStatus[email] = 'Recebido';
+    } else {
+      providerStatus[email] = 'Enviado';
+    }
+  }
+
+  return alertas.filter(al => {
+    const targetComp = `${state.selectedMonth}-${state.selectedYear}`;
+    if (al.mes_ano_referencia !== targetComp) return false;
+
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      const matchNome = al.nome.toLowerCase().includes(q);
+      const matchCnpj = (al.cnpj || '').includes(q);
+      const matchEmail = al.email.toLowerCase().includes(q);
+      if (!matchNome && !matchCnpj && !matchEmail) return false;
+    }
+
+    if (state.statusFilter !== 'all') {
+      const emailNorm = normalizeEmail(al.email);
+      const currentStatus = providerStatus[emailNorm] || 'Pendente';
+      if (currentStatus !== state.statusFilter) return false;
+    }
+
     return true;
   });
 }
@@ -441,10 +553,12 @@ function setupEventListeners() {
   document.getElementById('search-input').addEventListener('input', (e) => {
     state.searchQuery = e.target.value;
     renderGrid();
+    renderMensagens();
   });
   document.getElementById('status-filter').addEventListener('change', (e) => {
     state.statusFilter = e.target.value;
     renderGrid();
+    renderMensagens();
   });
 
   // Cliques nos Cards de Resumo para Filtro Rápido
@@ -454,6 +568,7 @@ function setupEventListeners() {
       state.statusFilter = filterVal;
       document.getElementById('status-filter').value = filterVal;
       renderGrid();
+      renderMensagens();
     });
   });
 

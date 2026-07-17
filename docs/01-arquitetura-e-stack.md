@@ -61,7 +61,7 @@ Fontes externas:   Tomticket (chamados)   ·   ERP HCM (fornecedores PJ)
 | **Fonte HCM** (CITY API) | Sincronizar a Lista de PJ do ERP HCM → tabela no DB City | `12` §1 |
 | **Motor de Status** (CITY API) | Calcular Pendente/Enviado/Recebido via Left Join **por CNPJ**, por competência | `04-regras-de-negocio-status.md` |
 | **Serviço de Elegibilidade de Alerta** (CITY API) | Calcular **quem é elegível** para uma regra — **não envia e-mail** | `05` §4, `12` §3.3 |
-| **Serviço de Exportação** (CITY API) | Gerar **Excel `.xlsx`** (aba principal + aba de contratos) | `07-frontend-dashboard.md` §3 |
+| **Serviço de Exportação** (CITY API) | Gerar **Excel `.xlsx`** (Status Notas Fiscais + Contratos + Mensagens Enviadas) | `07-frontend-dashboard.md` §3 |
 | **Camada de Dados** (CITY API) | Persistência e repositórios das **3 tabelas** (SQL Server) | `02-dicionario-de-dados.md` |
 | **Worker de Alertas** (**Python + Scheduler**) | Agendar 2x/dia (UTC-3), decidir a regra do dia, **enviar via Office 365**, gravar na Tabela de Alerta | `05-automacao-alertas.md` |
 
@@ -89,7 +89,7 @@ Fontes externas:   Tomticket (chamados)   ·   ERP HCM (fornecedores PJ)
 - **Autenticação:** **JWT M2M** (PyJWT HS256) — endpoints `/v2` protegidos (inclusive para o n8n).
 - **Automação/agendamento dos alertas:** **worker Python + Scheduler** (fora dos endpoints) — A-13, ver §3 e `05`.
 - **E-mail:** **Office 365**, disparado pelo **worker** (`IEmailSender`). A City não tem SMTP próprio (A-17).
-- **Exportação:** **somente Excel `.xlsx`** gerado no backend (aba principal + aba de contratos — `07` §3, A-25).
+- **Exportação:** **somente Excel `.xlsx`** gerado no backend (Status Notas Fiscais + Contratos + Mensagens Enviadas — `07` §3, A-25).
 - **Frontend:** SPA (Dashboard) consumindo `/v2/notas-fiscais/...` com JWT; DataGrid + seletores Ano/Mês; identidade visual City (`11`).
 
 ## 5. Ambientes e configuração

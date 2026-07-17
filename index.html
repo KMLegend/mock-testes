@@ -41,53 +41,6 @@
       <p class="subtitle">Acompanhe a entrega de Notas Fiscais dos fornecedores integrados via Tomticket.</p>
     </section>
 
-    <!-- Navegação por abas -->
-    <nav class="tabs-nav" id="tabs-nav">
-      <button class="tab-btn active" data-tab="status">Status</button>
-      <button class="tab-btn" data-tab="mensagens">Mensagens</button>
-    </nav>
-
-    <!-- ABA: STATUS -->
-    <div id="tab-status" class="tab-panel">
-
-    <!-- Cards de Resumo (rollup consolidado) -->
-    <section class="summary-cards" id="summary-section">
-      <div class="card card-total">
-        <div class="card-body">
-          <span class="card-label">Total de Fornecedores Ativos</span>
-          <span class="card-value" id="count-total">0</span>
-        </div>
-      </div>
-      <div class="card card-status card-pendente" data-filter="Pendente">
-        <div class="card-body">
-          <span class="card-label">Pendentes</span>
-          <span class="card-value" id="count-pendente">0</span>
-        </div>
-        <div class="card-indicator bg-pendente"></div>
-      </div>
-      <div class="card card-status card-enviado" data-filter="Enviado">
-        <div class="card-body">
-          <span class="card-label">Enviados</span>
-          <span class="card-value" id="count-enviado">0</span>
-        </div>
-        <div class="card-indicator bg-enviado"></div>
-      </div>
-      <div class="card card-status card-recebido" data-filter="Recebido">
-        <div class="card-body">
-          <span class="card-label">Recebidos</span>
-          <span class="card-value" id="count-recebido">0</span>
-        </div>
-        <div class="card-indicator bg-recebido"></div>
-      </div>
-      <div class="card card-status card-manual" data-filter="Tratamento Manual">
-        <div class="card-body">
-          <span class="card-label">Tratamento Manual</span>
-          <span class="card-value" id="count-manual">0</span>
-        </div>
-        <div class="card-indicator bg-manual"></div>
-      </div>
-    </section>
-
     <!-- Controles, filtros e buscas -->
     <section class="controls-panel">
       <!-- Filtros Obrigatórios de Competência (Ano/Mês) -->
@@ -143,6 +96,53 @@
         <div class="export-buttons">
           <button id="btn-export-xlsx" class="btn btn-secondary">EXCEL</button>
         </div>
+      </div>
+    </section>
+
+    <!-- Navegação por abas -->
+    <nav class="tabs-nav" id="tabs-nav">
+      <button class="tab-btn active" data-tab="status">Status</button>
+      <button class="tab-btn" data-tab="mensagens">Mensagens</button>
+    </nav>
+
+    <!-- ABA: STATUS -->
+    <div id="tab-status" class="tab-panel">
+
+    <!-- Cards de Resumo (rollup consolidado) -->
+    <section class="summary-cards" id="summary-section">
+      <div class="card card-total">
+        <div class="card-body">
+          <span class="card-label">Total de Fornecedores Ativos</span>
+          <span class="card-value" id="count-total">0</span>
+        </div>
+      </div>
+      <div class="card card-status card-pendente" data-filter="Pendente">
+        <div class="card-body">
+          <span class="card-label">Pendentes</span>
+          <span class="card-value" id="count-pendente">0</span>
+        </div>
+        <div class="card-indicator bg-pendente"></div>
+      </div>
+      <div class="card card-status card-enviado" data-filter="Enviado">
+        <div class="card-body">
+          <span class="card-label">Enviados</span>
+          <span class="card-value" id="count-enviado">0</span>
+        </div>
+        <div class="card-indicator bg-enviado"></div>
+      </div>
+      <div class="card card-status card-recebido" data-filter="Recebido">
+        <div class="card-body">
+          <span class="card-label">Recebidos</span>
+          <span class="card-value" id="count-recebido">0</span>
+        </div>
+        <div class="card-indicator bg-recebido"></div>
+      </div>
+      <div class="card card-status card-manual" data-filter="Tratamento Manual">
+        <div class="card-body">
+          <span class="card-label">Tratamento Manual</span>
+          <span class="card-value" id="count-manual">0</span>
+        </div>
+        <div class="card-indicator bg-manual"></div>
       </div>
     </section>
 
