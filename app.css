@@ -361,7 +361,7 @@ body {
 }
 
 #fornecedores-table {
-  min-width: 1450px; /* Garante que as 11 colunas fiquem bem espaçadas */
+  min-width: 1515px; /* Garante que as 12 colunas fiquem bem espaçadas */
 }
 
 #mensagens-table {
@@ -371,38 +371,45 @@ body {
 /* Ajustes de largura mínima e quebra de texto para colunas críticas */
 #fornecedores-table th:nth-child(1),
 #fornecedores-table td:nth-child(1) {
-  min-width: 140px; /* Fornecedor (Apelido) */
+  width: 65px;
+  min-width: 65px; /* Botão de mensagens do PJ */
+  text-align: center;
 }
 
 #fornecedores-table th:nth-child(2),
 #fornecedores-table td:nth-child(2) {
+  min-width: 140px; /* Fornecedor (Apelido) */
+}
+
+#fornecedores-table th:nth-child(3),
+#fornecedores-table td:nth-child(3) {
   min-width: 250px; /* Razão Social (Nome Empresa) */
   white-space: normal;
   word-break: break-word;
 }
 
-#fornecedores-table th:nth-child(3),
-#fornecedores-table td:nth-child(3) {
-  min-width: 140px; /* Nome Funcionário */
-}
-
 #fornecedores-table th:nth-child(4),
 #fornecedores-table td:nth-child(4) {
-  min-width: 160px; /* CNPJ */
+  min-width: 140px; /* Nome Funcionário */
 }
 
 #fornecedores-table th:nth-child(5),
 #fornecedores-table td:nth-child(5) {
-  min-width: 220px; /* E-mail */
+  min-width: 160px; /* CNPJ */
 }
 
 #fornecedores-table th:nth-child(6),
 #fornecedores-table td:nth-child(6) {
+  min-width: 220px; /* E-mail */
+}
+
+#fornecedores-table th:nth-child(7),
+#fornecedores-table td:nth-child(7) {
   min-width: 120px; /* Status badge */
 }
 
-#fornecedores-table th:nth-child(10),
-#fornecedores-table td:nth-child(10) {
+#fornecedores-table th:nth-child(11),
+#fornecedores-table td:nth-child(11) {
   min-width: 160px; /* Tipo de Lançamento */
   white-space: normal;
   word-break: break-word;

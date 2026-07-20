@@ -1,7 +1,7 @@
 // Lógica do frontend do Dashboard (Fase 1)
 // Em conformidade com as regras de motor de status (docs/04) e identidade visual (docs/11)
 
-import { listFornecedores, listChamados, listMensagens, resolverContrato } from './dataProvider.js';
+import { listFornecedores, listChamados, listMensagens, listAlertas, resolverContrato } from './dataProvider.js';
 import { mockChamados, mockFornecedores } from './mockData.js';
 
 // --- DEDUÇÃO DE DATA CORRENTE (A-11) ---
@@ -42,6 +42,93 @@ function normalizeTipoLancamento(tipo) {
   if (t === "reembolso plano de saude" || t === "reembolso plano de saúde") return "Reembolso plano de saúde";
   if (t === "ambas") return "Ambas";
   return tipo;
+}
+
+// Mantém apenas os dígitos (usado para comparar CNPJ com ou sem máscara)
+function onlyDigits(value) {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
+// --- FILTROS COMPARTILHADOS (grid e exportação usam os MESMOS critérios) ---
+
+function matchesStatus(row, statusFilter) {
+  if (!statusFilter || statusFilter === 'all') return true;
+  return row.status === statusFilter;
+}
+
+// Núcleo da busca textual, usado por TODAS as visões (grid, exportação e aba Mensagens).
+// O CNPJ aceita as duas formas: mascarada (33.333.333/0001-33) e só dígitos (33333333000133),
+// porque a comparação é feita apenas sobre os dígitos dos dois lados.
+function matchesQuery({ texts = [], cnpj = '' }, query) {
+  const q = String(query ?? '').trim().toLowerCase();
+  if (!q) return true;
+
+  const inText = (v) => String(v ?? '').toLowerCase().includes(q);
+
+  const qDigits = onlyDigits(q);
+  const matchCnpj = qDigits.length > 0 && onlyDigits(cnpj).includes(qDigits);
+
+  return texts.some(inText) || matchCnpj;
+}
+
+// Busca sobre uma linha do grid de status
+function matchesSearch(row, query) {
+  return matchesQuery(
+    { texts: [row.apelido, row.nome, row.funcionario, row.email, row.protocol], cnpj: row.cnpj },
+    query
+  );
+}
+
+// Busca sobre um registro da Tabela de Alerta (aba Mensagens / modal)
+function matchesSearchAlerta(alerta, query) {
+  return matchesQuery(
+    { texts: [alerta.nome, alerta.email, alerta.regra], cnpj: alerta.cnpj },
+    query
+  );
+}
+
+// Status consolidado (rollup) por fornecedor na competência corrente.
+// Regra: Tratamento Manual > Pendente > Enviado > Recebido (só se todas as tratativas finalizadas).
+function computeProviderStatus() {
+  const rollup = {};
+  for (const row of state.gridRows) {
+    const email = normalizeEmail(row.email);
+    if (!rollup[email]) rollup[email] = [];
+    rollup[email].push(row.status);
+  }
+
+  const providerStatus = {};
+  for (const [email, statuses] of Object.entries(rollup)) {
+    if (statuses.includes('Tratamento Manual')) providerStatus[email] = 'Tratamento Manual';
+    else if (statuses.includes('Pendente')) providerStatus[email] = 'Pendente';
+    else if (statuses.includes('Enviado')) providerStatus[email] = 'Enviado';
+    else if (statuses.every(s => s === 'Recebido')) providerStatus[email] = 'Recebido';
+    else providerStatus[email] = 'Enviado';
+  }
+  return providerStatus;
+}
+
+// Filtro ÚNICO das mensagens — usado pela aba Mensagens e pela exportação Excel,
+// garantindo que a planilha reflita exatamente o que está na tela.
+function filterAlertas(alertas) {
+  const providerStatus = computeProviderStatus();
+  const targetComp = `${state.selectedMonth}-${state.selectedYear}`;
+
+  return alertas.filter(al => {
+    // Competência (Ano/Mês)
+    if (al.mes_ano_referencia !== targetComp) return false;
+
+    // Busca textual (CNPJ com ou sem máscara)
+    if (!matchesSearchAlerta(al, state.searchQuery)) return false;
+
+    // Status do fornecedor na competência corrente
+    if (state.statusFilter !== 'all') {
+      const currentStatus = providerStatus[normalizeEmail(al.email)] || 'Pendente';
+      if (currentStatus !== state.statusFilter) return false;
+    }
+
+    return true;
+  });
 }
 
 // Formata data ISO para DD/MM/AAAA HH:MM
@@ -222,27 +309,9 @@ function renderGrid() {
   tbody.innerHTML = '';
 
   // 1. Aplica filtros
-  let filtered = state.gridRows.filter(row => {
-    // Filtro de Status
-    if (state.statusFilter !== 'all') {
-      if (state.statusFilter === 'Tratamento Manual' && row.status !== 'Tratamento Manual') return false;
-      if (state.statusFilter === 'Pendente' && row.status !== 'Pendente') return false;
-      if (state.statusFilter === 'Enviado' && row.status !== 'Enviado') return false;
-      if (state.statusFilter === 'Recebido' && row.status !== 'Recebido') return false;
-    }
-
-    // Filtro de Busca (Nome, CNPJ, Email ou Protocolo)
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
-      const matchNome = row.nome.toLowerCase().includes(q);
-      const matchCnpj = row.cnpj.includes(q);
-      const matchEmail = row.email.toLowerCase().includes(q);
-      const matchProtocol = row.protocol.includes(q);
-      return matchNome || matchCnpj || matchEmail || matchProtocol;
-    }
-
-    return true;
-  });
+  let filtered = state.gridRows.filter(row =>
+    matchesStatus(row, state.statusFilter) && matchesSearch(row, state.searchQuery)
+  );
 
   // 2. Aplica ordenação
   filtered.sort((a, b) => {
@@ -292,6 +361,13 @@ function renderGrid() {
     const esc = (v) => String(v ?? '').replace(/"/g, '&quot;');
     const cnpjFmt = row.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
     tr.innerHTML = `
+      <td class="actions-cell">
+        <button class="btn btn-history btn-sm"
+                title="Ver mensagens enviadas a ${esc(row.apelido)}"
+                data-email="${esc(row.email)}"
+                data-nome="${esc(row.apelido)}"
+                data-cnpj="${esc(row.cnpj)}">✉</button>
+      </td>
       <td class="font-bold" title="${esc(row.apelido)}">${row.apelido}</td>
       <td title="${esc(row.nome)}">${row.nome}</td>
       <td title="${esc(row.funcionario)}">${row.funcionario}</td>
@@ -307,66 +383,83 @@ function renderGrid() {
 
     tbody.appendChild(tr);
   });
+
+  // Botão de mensagens por linha → abre o modal do PJ
+  tbody.querySelectorAll('.btn-history').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openAuditModal(
+        btn.getAttribute('data-email'),
+        btn.getAttribute('data-nome'),
+        btn.getAttribute('data-cnpj')
+      );
+    });
+  });
+}
+
+// --- MODAL: MENSAGENS DE UM PJ ESPECÍFICO ---
+async function openAuditModal(email, nome, cnpj) {
+  const modal = document.getElementById('audit-modal');
+  const tbody = document.getElementById('modal-table-body');
+  const emptyState = document.getElementById('modal-empty-state');
+  if (!modal || !tbody) return;
+
+  document.getElementById('modal-supplier-name').innerText = nome || '-';
+  document.getElementById('modal-supplier-cnpj').innerText =
+    String(cnpj || '').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  document.getElementById('modal-supplier-email').innerText = email || '-';
+
+  tbody.innerHTML = '';
+  emptyState.classList.add('hidden');
+
+  // Busca via camada de dados (dataProvider) — filtra por e-mail, trocável por API na Fase 2
+  const alertas = await listAlertas(email);
+
+  if (alertas.length === 0) {
+    emptyState.classList.remove('hidden');
+  } else {
+    alertas.forEach(al => {
+      const cobranca = al.regra === 'D+1' || al.regra === 'D+3';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge ${cobranca ? 'badge-manual' : 'badge-pendente'}">${al.regra}</span></td>
+        <td>${formatDate(al.data_hora_envio)}</td>
+        <td>${String(al.mes_ano_referencia || '').replace('-', '/')}</td>
+        <td>${cobranca ? 'Cobrança' : 'Preventivo'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeAuditModal() {
+  document.getElementById('audit-modal')?.classList.add('hidden');
 }
 
 // --- RENDERIZAR ABA DE MENSAGENS (histórico de alertas enviados) ---
+// Renderização assíncrona: um token evita que duas chamadas concorrentes
+// (ex.: digitar na busca + trocar de aba) pintem a tabela duas vezes (linhas duplicadas).
+let mensagensRenderToken = 0;
+
 async function renderMensagens() {
   const tbody = document.getElementById('mensagens-body');
   const emptyState = document.getElementById('mensagens-empty');
   if (!tbody) return;
-  tbody.innerHTML = '';
+
+  const token = ++mensagensRenderToken;
 
   // Busca via camada de dados (dataProvider) — trocável por API na Fase 2
   const alertas = await listMensagens();
 
-  // Calcula o status consolidado de cada fornecedor para a competência atual (mesma regra de rollup)
-  const providerStatus = {};
-  const rollup = {};
-  for (const row of state.gridRows) {
-    const email = normalizeEmail(row.email);
-    if (!rollup[email]) {
-      rollup[email] = [];
-    }
-    rollup[email].push(row.status);
-  }
-  for (const [email, statuses] of Object.entries(rollup)) {
-    if (statuses.includes('Tratamento Manual')) {
-      providerStatus[email] = 'Tratamento Manual';
-    } else if (statuses.includes('Pendente')) {
-      providerStatus[email] = 'Pendente';
-    } else if (statuses.includes('Enviado')) {
-      providerStatus[email] = 'Enviado';
-    } else if (statuses.every(s => s === 'Recebido')) {
-      providerStatus[email] = 'Recebido';
-    } else {
-      providerStatus[email] = 'Enviado';
-    }
-  }
+  // Uma renderização mais recente assumiu enquanto esperávamos os dados → descarta esta
+  if (token !== mensagensRenderToken) return;
 
-  // 1. Aplica filtros
-  const filtered = alertas.filter(al => {
-    // Filtro de Competência (Ano/Mês)
-    const targetComp = `${state.selectedMonth}-${state.selectedYear}`;
-    if (al.mes_ano_referencia !== targetComp) return false;
+  // Aplica o filtro único (o mesmo usado pela exportação Excel)
+  const filtered = filterAlertas(alertas);
 
-    // Filtro de Busca (Nome, CNPJ ou E-mail)
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
-      const matchNome = al.nome.toLowerCase().includes(q);
-      const matchCnpj = (al.cnpj || '').includes(q);
-      const matchEmail = al.email.toLowerCase().includes(q);
-      if (!matchNome && !matchCnpj && !matchEmail) return false;
-    }
-
-    // Filtro de Status (conforme o status do fornecedor na competência corrente)
-    if (state.statusFilter !== 'all') {
-      const emailNorm = normalizeEmail(al.email);
-      const currentStatus = providerStatus[emailNorm] || 'Pendente';
-      if (currentStatus !== state.statusFilter) return false;
-    }
-
-    return true;
-  });
+  // Limpa imediatamente antes de pintar (nunca antes do await), para não duplicar linhas
+  tbody.innerHTML = '';
 
   if (filtered.length === 0) {
     emptyState.classList.remove('hidden');
@@ -457,72 +550,16 @@ async function exportToXLSX() {
 
 // Retorna as linhas do grid filtradas ativamente na UI
 function getFilteredRowsForExport() {
-  return state.gridRows.filter(row => {
-    if (state.statusFilter !== 'all') {
-      if (state.statusFilter === 'Tratamento Manual' && row.status !== 'Tratamento Manual') return false;
-      if (state.statusFilter === 'Pendente' && row.status !== 'Pendente') return false;
-      if (state.statusFilter === 'Enviado' && row.status !== 'Enviado') return false;
-      if (state.statusFilter === 'Recebido' && row.status !== 'Recebido') return false;
-    }
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
-      const matchNome = row.nome.toLowerCase().includes(q);
-      const matchCnpj = row.cnpj.includes(q);
-      const matchEmail = row.email.toLowerCase().includes(q);
-      const matchProtocol = row.protocol.includes(q);
-      return matchNome || matchCnpj || matchEmail || matchProtocol;
-    }
-    return true;
-  });
+  // Usa exatamente os mesmos critérios do grid, garantindo que o Excel reflita a tela
+  return state.gridRows.filter(row =>
+    matchesStatus(row, state.statusFilter) && matchesSearch(row, state.searchQuery)
+  );
 }
 
 // Retorna os alertas filtrados ativamente na UI
+// Mensagens da exportação: usa exatamente o MESMO filtro da aba Mensagens
 async function getFilteredAlertsForExport() {
-  const alertas = await listMensagens();
-
-  const providerStatus = {};
-  const rollup = {};
-  for (const row of state.gridRows) {
-    const email = normalizeEmail(row.email);
-    if (!rollup[email]) {
-      rollup[email] = [];
-    }
-    rollup[email].push(row.status);
-  }
-  for (const [email, statuses] of Object.entries(rollup)) {
-    if (statuses.includes('Tratamento Manual')) {
-      providerStatus[email] = 'Tratamento Manual';
-    } else if (statuses.includes('Pendente')) {
-      providerStatus[email] = 'Pendente';
-    } else if (statuses.includes('Enviado')) {
-      providerStatus[email] = 'Enviado';
-    } else if (statuses.every(s => s === 'Recebido')) {
-      providerStatus[email] = 'Recebido';
-    } else {
-      providerStatus[email] = 'Enviado';
-    }
-  }
-
-  return alertas.filter(al => {
-    const targetComp = `${state.selectedMonth}-${state.selectedYear}`;
-    if (al.mes_ano_referencia !== targetComp) return false;
-
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
-      const matchNome = al.nome.toLowerCase().includes(q);
-      const matchCnpj = (al.cnpj || '').includes(q);
-      const matchEmail = al.email.toLowerCase().includes(q);
-      if (!matchNome && !matchCnpj && !matchEmail) return false;
-    }
-
-    if (state.statusFilter !== 'all') {
-      const emailNorm = normalizeEmail(al.email);
-      const currentStatus = providerStatus[emailNorm] || 'Pendente';
-      if (currentStatus !== state.statusFilter) return false;
-    }
-
-    return true;
-  });
+  return filterAlertas(await listMensagens());
 }
 
 function downloadFile(content, mimeType, fileName) {
@@ -601,6 +638,15 @@ function setupEventListeners() {
       document.getElementById('tab-mensagens').classList.toggle('hidden', tab !== 'mensagens');
       if (tab === 'mensagens') renderMensagens();
     });
+  });
+
+  // Modal de mensagens do PJ: fechar no X, no clique fora e no ESC
+  document.getElementById('btn-close-modal')?.addEventListener('click', closeAuditModal);
+  document.getElementById('audit-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'audit-modal') closeAuditModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAuditModal();
   });
 
   // Exportação (somente Excel)

@@ -48,15 +48,25 @@ Recursos recomendados:
 - Filtro por status.
 - Link do chamado abre em nova aba.
 
-## 2. Aba "Mensagens" (Audit Trail — Tarefa 3.2, A-24)
+## 2. Histórico de comunicação — duas visões (Tarefa 3.2, A-24)
 
-O histórico de comunicação é uma **aba própria** ("Mensagens"), **não** um botão "Auditar" por linha.
-O Dashboard tem duas abas: **Status** (grid de fornecedores) e **Mensagens** (todos os alertas enviados).
+O histórico é exposto de **duas formas complementares**, ambas lendo a **Tabela de Alerta**
+(`GET /v2/notas-fiscais/comunicados`), independente de a Fato ter registro:
 
-- Lista **todos os alertas** disparados (não por linha): fonte = **Tabela de Alerta**
-  (`GET /v2/notas-fiscais/comunicados`), independente de a Fato ter registro.
+### 2.1 Aba "Mensagens" (visão geral)
+O Dashboard tem duas abas: **Status** (grid de fornecedores) e **Mensagens**.
+- Lista **todos os alertas** disparados (todos os PJ).
 - **Colunas:** `Nome`, `E-mail`, `CNPJ`, `Regra` (D-3/D/D+1/D+3), `Data/Hora de Envio`, `Ano/Mês`.
-- Ordenar do mais recente para o mais antigo.
+- Ordenação do mais recente para o mais antigo.
+
+### 2.2 Modal por PJ (visão focada)
+- **Botão na 1ª coluna do grid** (antes de "Fornecedor / PJ"), rotulado com ícone de mensagem.
+- Abre um **modal** com as mensagens **daquele PJ** (filtro por e-mail — `listAlertas(email)`).
+- **Cabeçalho do modal:** Fornecedor, CNPJ e E-mail (identificação do PJ).
+- **Colunas do modal:** `Regra`, `Data/Hora de Envio`, `Ano/Mês`, `Tipo` (Preventivo/Cobrança).
+  > O nome/e-mail/CNPJ não se repetem nas linhas por já estarem no cabeçalho.
+- Fecha no **X**, no clique fora e no **ESC**.
+- **Requisito crítico:** funciona também para PJ **Pendente** (sem registro na Fato).
 
 ## 3. Módulo de Exportação (Tarefa 3.3, A-25)
 

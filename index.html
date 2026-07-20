@@ -76,7 +76,7 @@
       <div class="search-filters">
         <div class="form-group search-group">
           <label for="search-input">Buscar fornecedor</label>
-          <input type="text" id="search-input" class="form-control" placeholder="Buscar por Nome, CNPJ ou E-mail..." />
+          <input type="text" id="search-input" class="form-control" placeholder="Buscar por Nome, CNPJ (com ou sem máscara), E-mail ou Nº do chamado..." />
         </div>
         <div class="form-group status-filter-group">
           <label for="status-filter">Filtrar por Status</label>
@@ -152,6 +152,7 @@
         <table class="datagrid-table" id="fornecedores-table">
           <thead>
             <tr>
+              <th class="actions-header" title="Ver mensagens enviadas a este PJ">Msg</th>
               <th class="sortable" data-sort="apelido">Fornecedor / PJ <span class="sort-icon">↕</span></th>
               <th class="sortable" data-sort="nome">Nome Empresa <span class="sort-icon">↕</span></th>
               <th class="sortable" data-sort="funcionario">Nome Funcionário <span class="sort-icon">↕</span></th>
@@ -208,6 +209,41 @@
       </section>
     </div><!-- /tab-mensagens -->
   </main>
+
+  <!-- Modal de Mensagens do PJ (acionado pelo botão da 1ª coluna do grid) -->
+  <div class="modal-overlay hidden" id="audit-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title">Mensagens enviadas ao PJ</h2>
+        <button class="btn-close" id="btn-close-modal" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-supplier-info">
+          <p><strong>Fornecedor:</strong> <span id="modal-supplier-name">-</span></p>
+          <p><strong>CNPJ:</strong> <span id="modal-supplier-cnpj">-</span></p>
+          <p><strong>E-mail:</strong> <span id="modal-supplier-email">-</span></p>
+        </div>
+        <div class="table-responsive">
+          <table class="modal-table">
+            <thead>
+              <tr>
+                <th>Regra</th>
+                <th>Data/Hora de Envio</th>
+                <th>Ano/Mês</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="modal-table-body">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+        <div id="modal-empty-state" class="modal-empty hidden">
+          <p>Nenhuma mensagem enviada para este fornecedor.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Painel Interativo de Teste (Barra Lateral Flutuante para testes de QA e avaliação) -->
   <div class="test-panel collapsed" id="test-panel">

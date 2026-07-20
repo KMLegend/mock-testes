@@ -59,7 +59,7 @@ status: rastreador
 | **A-21** | Desambiguação de contrato (P-09) | Extração de CNPJ atrás da interface **`INotaCnpjExtractor`**; **mock** (`MockNotaCnpjExtractor`) por enquanto, **Marker** depois, trocável por `CNPJ_EXTRACTOR=MOCK\|MARKER`. Sem match → tratamento manual. | `13` §4, `03` §3.1 |
 | **A-22** | Fases de desenvolvimento | **Fase 1 = frontend mockado interativo** (status Pendente/Enviado/Recebido sobre interface modular, sem backend); **Fase 2 = backend** (endpoints CITY API + integrações + worker); Fase 3 = validação. UI não muda entre fases. | `10-roadmap-fases-tarefas.md` |
 | **A-23** | Colunas da tabela de status | **Fornecedor / PJ** (apelido), **Nome Empresa** (razão social), **Nome Funcionário** (`name` do chamado), CNPJ, E-mail, Status, Nº Chamado, Abertura, Finalização, Tipo de Lançamento, Link. | `07` §1 |
-| **A-24** | Histórico de comunicação | É uma **aba própria "Mensagens"** (não botão "Auditar" por linha). Colunas: Nome, E-mail, CNPJ, Regra, Data/Hora de Envio, Ano/Mês. | `07` §2 |
+| **A-24** | Histórico de comunicação | **Duas visões complementares:** (a) **aba "Mensagens"** com todos os alertas (Nome, E-mail, CNPJ, Regra, Data/Hora, Ano/Mês); (b) **modal por PJ**, aberto por **botão na 1ª coluna do grid** (Regra, Data/Hora, Ano/Mês, Tipo). Ambas leem a Tabela de Alerta e funcionam para PJ Pendente. | `07` §2 |
 | **A-25** | Exportação | **Somente Excel (`.xlsx`)**, botão rotulado **"EXCEL"** — **sem CSV nem PDF** (substitui A-10). | `07` §3 |
 
 ## 3. Decisões ainda a confirmar
@@ -97,6 +97,7 @@ status: rastreador
 | 2026-07-17 | A-22 | **Fase 1 = frontend mockado interativo** (status dos PJ); **Fase 2 = backend**. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-23 | Colunas da tabela: Fornecedor/PJ, Nome Empresa, Nome Funcionário, CNPJ, E-mail, Status, Nº Chamado, Abertura, Finalização, Tipo de Lançamento, Link. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-24 | Histórico vira **aba "Mensagens"** (Nome, E-mail, CNPJ, Regra, Dt/H Envio, Ano/Mês); sem botão Auditar. | kevin.maykel@cityinc.com.br |
+| 2026-07-17 | A-24 (rev.) | **Mantida a aba** e **adicionado botão na 1ª coluna** do grid que abre **modal com as mensagens daquele PJ** — as duas visões coexistem. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-25 | Exportação **somente Excel** (botão "EXCEL"); remove CSV e PDF (substitui A-10). | kevin.maykel@cityinc.com.br |
 
 ### Decisões substituídas (histórico)
