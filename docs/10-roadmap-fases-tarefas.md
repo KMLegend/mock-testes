@@ -34,6 +34,7 @@ status: mapa
 
 | Tarefa | Descrição | Documentos | Critério de conclusão |
 |---|---|---|---|
+| 1.0 | **Refatoração para React + TypeScript** (SOLID + Object Calisthenics, Ports & Adapters) — A-26 | `14`, `15`, `16` | Checklist de paridade (`16` §3) validado; suíte de testes verde; legado removido |
 | 1.1 | Setup do frontend + **identidade visual City** (importar `brand.css`, tokens, header, logo) | `11-identidade-visual.md` | App renderiza com a marca City; tokens de status disponíveis |
 | 1.2 | **Camada de dados mock** por interface (DTOs `FornecedorPJ`, `ChamadoTomticket`; datasets de `13`) | `13` §1–§2, `06` §2 (Strategy) | Serviço mock plugável devolve os DTOs padrão; trocável por config |
 | 1.3 | **Motor de status no cliente** (equivalente ao Left Join por **e-mail** + competência) | `04-regras-de-negocio-status.md` | Pendente/Enviado/Recebido corretos; granularidade por `(email, tipo_lancamento)` |

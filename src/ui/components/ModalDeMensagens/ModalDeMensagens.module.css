@@ -1,0 +1,97 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modalCard {
+  background-color: var(--color-card-bg);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 650px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modalHeader {
+  background-color: var(--color-header-bg);
+  color: var(--color-text-header);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h2 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+.btnClose {
+  background: none;
+  border: none;
+  color: var(--color-text-header);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.modalBody {
+  padding: 1.5rem;
+}
+
+.modalSupplierInfo {
+  background-color: var(--color-gray-100);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.25rem;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.modalTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.modalTable th {
+  background-color: var(--color-gray-100);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.modalTable td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badgePendente { background-color: var(--color-status-pendente-soft); color: var(--color-status-pendente-text); }
+.badgeManual { background-color: var(--color-danger-soft); color: var(--color-danger-text); }
+
+.modalEmpty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-gray-500);
+}

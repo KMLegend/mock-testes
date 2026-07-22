@@ -1,0 +1,21 @@
+.appContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3rem 2rem;
+}
+
+.pageTitleSection {
+  margin-bottom: 1.5rem;
+}
+
+.pageTitleSection h1 {
+  font-size: 1.5rem;
+  color: var(--color-gray-900);
+  margin: 0 0 0.25rem 0;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--color-gray-500);
+  margin: 0;
+}

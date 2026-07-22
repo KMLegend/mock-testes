@@ -1,0 +1,90 @@
+.datagridSection {
+  background-color: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.tableResponsive {
+  overflow-x: auto;
+}
+
+.datagridTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.datagridTable th {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-gray-200);
+  white-space: nowrap;
+}
+
+.datagridTable th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.datagridTable th.sortable:hover {
+  background-color: var(--color-gray-200);
+}
+
+.datagridTable td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-gray-200);
+  color: var(--color-gray-800);
+  white-space: nowrap;
+}
+
+.rowSelected {
+  background-color: var(--color-danger-soft);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.badgePendente { background-color: var(--color-status-pendente-soft); color: var(--color-status-pendente-text); }
+.badgeEnviado { background-color: var(--color-status-enviado-soft); color: var(--color-status-enviado-text); }
+.badgeRecebido { background-color: var(--color-status-recebido-soft); color: var(--color-status-recebido-text); }
+.badgeManual { background-color: var(--color-danger-soft); color: var(--color-danger-text); }
+
+.btnHistory {
+  background-color: var(--color-gray-100);
+  border: 1px solid var(--color-gray-300);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnHistory:hover {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+}
+
+.linkTomticket {
+  color: var(--color-status-enviado);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.linkTomticket:hover {
+  text-decoration: underline;
+}
+
+.emptyState {
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--color-gray-500);
+}

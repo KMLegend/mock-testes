@@ -1,0 +1,28 @@
+.tabsNav {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--color-gray-200);
+  margin-bottom: 1.5rem;
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  margin-bottom: -2px;
+}
+
+.tabBtn:hover {
+  color: var(--color-gray-900);
+}
+
+.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}

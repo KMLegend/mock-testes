@@ -1,0 +1,32 @@
+.appHeader {
+  background-color: var(--color-header-bg);
+  color: var(--color-text-header);
+  padding: 1rem 2rem;
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.headerContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logoWrapper {
+  display: flex;
+  align-items: center;
+}
+
+.cityLogo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.headerTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-gray-200);
+  letter-spacing: 0.025em;
+}

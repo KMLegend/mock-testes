@@ -1,0 +1,103 @@
+.testPanel {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  width: 320px;
+  background-color: var(--color-card-bg);
+  border-left: 2px solid var(--color-accent);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.15);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  z-index: 900;
+  transition: transform 0.3s ease;
+}
+
+.collapsed {
+  transform: translateX(100%);
+}
+
+.testPanelToggle {
+  position: absolute;
+  left: -150px;
+  top: 10px;
+  background-color: var(--color-header-bg);
+  color: var(--color-text-header);
+  border: 1px solid var(--color-accent);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.testPanelContent {
+  padding: 1rem;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.testPanelContent h3 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.panelDesc {
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+  margin-bottom: 1rem;
+}
+
+.simGroup {
+  background-color: var(--color-gray-100);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.simGroup h4 {
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.simGroup label {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.formControl {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 4px;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+
+.btnSm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+}
+
+.btnPrimary { background-color: var(--color-status-enviado); color: var(--color-text-header); }
+.btnSecondary { background-color: var(--color-gray-600); color: var(--color-text-header); }
+.btnDanger { background-color: var(--color-danger); color: var(--color-text-header); }
+.btnOutlineDanger { background: none; border: 1px solid var(--color-danger); color: var(--color-danger); }
+
+.simButtonRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.btnBlock {
+  width: 100%;
+  margin-top: 0.5rem;
+}

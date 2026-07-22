@@ -90,7 +90,7 @@ Fontes externas:   Tomticket (chamados)   ·   ERP HCM (fornecedores PJ)
 - **Automação/agendamento dos alertas:** **worker Python + Scheduler** (fora dos endpoints) — A-13, ver §3 e `05`.
 - **E-mail:** **Office 365**, disparado pelo **worker** (`IEmailSender`). A City não tem SMTP próprio (A-17).
 - **Exportação:** **somente Excel `.xlsx`** gerado no backend (Status Notas Fiscais + Contratos + Mensagens Enviadas — `07` §3, A-25).
-- **Frontend:** SPA (Dashboard) consumindo `/v2/notas-fiscais/...` com JWT; DataGrid + seletores Ano/Mês; identidade visual City (`11`).
+- **Frontend:** SPA em **React + TypeScript (`strict`)** sob **SOLID + Object Calisthenics** e arquitetura **Ports & Adapters** (A-26). Na Fase 1 consome adapters mock; na Fase 2, `/v2/notas-fiscais/...` com JWT — trocando **apenas o Composition Root**. Identidade visual City (`11`). Ver `14`, `15`, `16`.
 
 ## 5. Ambientes e configuração
 

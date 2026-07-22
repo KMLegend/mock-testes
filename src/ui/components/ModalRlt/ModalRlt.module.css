@@ -1,0 +1,121 @@
+.overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background-color: rgba(2, 2, 2, 0.55);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+
+.card {
+  background-color: var(--color-card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  width: 100%; max-width: 1180px; max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+.cabecalho {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  background-color: var(--color-header-bg);
+  color: var(--color-text-header);
+}
+.cabecalho h2 { font-family: var(--font-title); font-weight: 600; font-size: 1.1rem; margin: 0; }
+
+.fechar {
+  appearance: none; border: none; background: transparent;
+  color: var(--color-text-header); font-size: 1.6rem; line-height: 1; cursor: pointer;
+}
+
+.corpo { padding: 20px 24px 24px; overflow-y: auto; }
+
+.identificacao {
+  display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 16px;
+  color: var(--color-text-muted); font-size: 0.9rem;
+}
+.identificacao p { margin: 0; }
+.identificacao strong { color: var(--color-text); }
+
+.saldoAtual {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 14px 18px; margin-bottom: 18px;
+  background-color: var(--color-accent-soft);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-control);
+}
+.saldoRotulo {
+  font-family: var(--font-title); font-weight: 600; font-size: 0.8rem;
+  text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-text-muted);
+}
+.saldoValor {
+  font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; color: var(--color-text);
+}
+
+.saldoBase {
+  font-size: 0.82rem; color: var(--color-text-muted);
+  padding-left: 12px; border-left: 1px solid var(--color-border);
+}
+
+.responsivo { width: 100%; overflow-x: auto; }
+.tabela { width: 100%; min-width: 940px; border-collapse: collapse; text-align: left; font-size: 0.86rem; }
+
+/* Descrição da rescisão é longa: única coluna que pode quebrar linha. */
+.descricao { white-space: normal; min-width: 260px; }
+.tabela th {
+  background-color: var(--color-surface-subtle); color: var(--color-text-muted);
+  font-family: var(--font-title); font-weight: 600; font-size: 0.74rem;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 11px 14px; border-bottom: 2px solid var(--color-border); white-space: nowrap;
+}
+.tabela td { padding: 11px 14px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.automatico { background-color: var(--color-surface-subtle); }
+.negrito { font-weight: 600; }
+.mono { font-family: monospace; font-size: 0.78rem; color: var(--color-text-muted); }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.badgeCredito { background-color: var(--color-status-recebido-soft); color: var(--color-status-recebido-text); }
+.badgeDebito { background-color: var(--color-danger-soft); color: var(--color-danger-text); }
+
+.vazio { padding: 24px; text-align: center; color: var(--color-text-muted); }
+
+.tituloFormulario {
+  font-family: var(--font-title); font-weight: 600; font-size: 0.95rem;
+  margin: 22px 0 12px; color: var(--color-text);
+}
+
+.formulario {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  padding: 16px; background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border); border-radius: var(--radius-control);
+}
+.campo { display: flex; flex-direction: column; gap: 5px; }
+.campoLargo { flex: 1 1 260px; }
+.campo label {
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--color-text-muted);
+}
+.campo input, .campo select {
+  padding: 9px 11px; border: 1px solid var(--color-border);
+  border-radius: var(--radius-control); font-family: var(--font-text); font-size: 0.9rem;
+  background-color: var(--color-card-bg); color: var(--color-text);
+}
+
+.botaoLancar {
+  appearance: none; border: none; cursor: pointer;
+  background-color: var(--color-accent); color: var(--color-text-header);
+  font-family: var(--font-title); font-weight: 600; font-size: 0.85rem;
+  padding: 10px 20px; border-radius: var(--radius-control);
+}
+.botaoLancar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.erro {
+  flex-basis: 100%; margin: 4px 0 0;
+  color: var(--color-danger-text); font-size: 0.85rem; font-weight: 600;
+}
+
+.avisoInativo {
+  padding: 14px 16px; margin: 0;
+  background-color: var(--color-bg-muted); border-radius: var(--radius-control);
+  color: var(--color-text-muted); font-size: 0.88rem;
+}

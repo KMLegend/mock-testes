@@ -111,7 +111,7 @@ Templates distintos por grupo. Conteúdo-base e placeholders em `13-referencia-p
 - Caixa remetente/credenciais O365: P-08 em `09`.
 
 ## 8. Registro obrigatório na Tabela de Alerta
-Cada envio bem-sucedido grava: `email`, `nome`, `cnpj`, `regra`, `data_hora_envio`, `mes_ano_referencia`.
+Cada envio bem-sucedido grava: `email`, **`responsavel_legal`** (pessoa), `cnpj`, `regra`, `data_hora_envio`, `mes_ano_referencia`.
 Essa tabela é a fonte do **Histórico de Comunicação** no Dashboard (Tarefa 3.2) e deve permanecer
 consultável **mesmo que o PJ nunca entre na Fato**. (Consolida o que o plano chamava de "Tabela
 Comunicado" — ver `02` e A-18.)

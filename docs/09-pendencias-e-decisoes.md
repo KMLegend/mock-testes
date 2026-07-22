@@ -58,9 +58,13 @@ status: rastreador
 | **A-20** | Prazo `D` e contagem | **`D` definido por variável `.env`** (≈ dia 1 do mês seguinte à competência). Offsets em **dias corridos**; **sem** validação de dia útil/feriado. | `05` §2 |
 | **A-21** | Desambiguação de contrato (P-09) | Extração de CNPJ atrás da interface **`INotaCnpjExtractor`**; **mock** (`MockNotaCnpjExtractor`) por enquanto, **Marker** depois, trocável por `CNPJ_EXTRACTOR=MOCK\|MARKER`. Sem match → tratamento manual. | `13` §4, `03` §3.1 |
 | **A-22** | Fases de desenvolvimento | **Fase 1 = frontend mockado interativo** (status Pendente/Enviado/Recebido sobre interface modular, sem backend); **Fase 2 = backend** (endpoints CITY API + integrações + worker); Fase 3 = validação. UI não muda entre fases. | `10-roadmap-fases-tarefas.md` |
-| **A-23** | Colunas da tabela de status | **Fornecedor / PJ** (apelido), **Nome Empresa** (razão social), **Nome Funcionário** (`name` do chamado), CNPJ, E-mail, Status, Nº Chamado, Abertura, Finalização, Tipo de Lançamento, Link. | `07` §1 |
-| **A-24** | Histórico de comunicação | **Duas visões complementares:** (a) **aba "Mensagens"** com todos os alertas (Nome, E-mail, CNPJ, Regra, Data/Hora, Ano/Mês); (b) **modal por PJ**, aberto por **botão na 1ª coluna do grid** (Regra, Data/Hora, Ano/Mês, Tipo). Ambas leem a Tabela de Alerta e funcionam para PJ Pendente. | `07` §2 |
+| **A-23** | Colunas da tabela de status *(revisada — ver registro)* | **Razão Social**, **Nome Fantasia** (apelido), **Responsável Legal** (`name` do chamado), CNPJ, E-mail, Status, Nº Chamado, Abertura, Finalização, Tipo de Lançamento, Link — precedidas do botão de mensagens. | `07` §1 |
+| **A-24** | Histórico de comunicação | **Duas visões complementares:** (a) **aba "Mensagens"** com todos os alertas (Responsável Legal, E-mail, CNPJ, Regra, Data/Hora, Ano/Mês); (b) **modal por PJ**, aberto por **botão na 1ª coluna do grid** (Regra, Data/Hora, Ano/Mês, Tipo). Ambas leem a Tabela de Alerta e funcionam para PJ Pendente. | `07` §2 |
 | **A-25** | Exportação | **Somente Excel (`.xlsx`)**, botão rotulado **"EXCEL"** — **sem CSV nem PDF** (substitui A-10). | `07` §3 |
+| **A-26** | Stack e padrões do frontend | **React + TypeScript (`strict`)** desde a Fase 1, mesmo com dados mockados, sob **SOLID** e **Object Calisthenics**, em arquitetura **Ports & Adapters**. Substitui a implementação em Vanilla JS. | `14`, `15`, `16` |
+| **A-27** | Coluna "Responsável Legal" nas Mensagens (resolve D-14) | A aba/planilha de Mensagens exibe a **pessoa responsável legal** do PJ, **não a razão social**. O campo da Tabela de Alerta passa a ser **`responsavel_legal`** (antes `nome`, que gravava razão social). | `07` §2.1, `02` §4, `05` §8 |
+| **A-28** | Hospedagem e identidade | A aplicação roda **embarcada no SharePoint** (iframe); **usuários e controle de acesso são os do SharePoint / Entra ID** — sem cadastro próprio. O backend deve derivar a identidade de um **token de usuário verificável** (nunca de valor enviado pelo cliente). | `18-hospedagem-sharepoint-e-identidade.md` |
+| **A-29** | Forma de entrega do frontend (resolve P-11 de `18`) | **SPFx web part** publicada no SharePoint, com **CITY API** como backend e token de **usuário** do Entra ID via `AadHttpClient`. Descartada a alternativa SPA+iframe+MSAL. | `spfx-sharepoint/` |
 
 ## 3. Decisões ainda a confirmar
 
@@ -96,9 +100,14 @@ status: rastreador
 | 2026-07-17 | A-21 | **Mockar P-09** agora: `INotaCnpjExtractor` + `MockNotaCnpjExtractor` para testar 1 PJ × >1 contrato; Marker fica para depois. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-22 | **Fase 1 = frontend mockado interativo** (status dos PJ); **Fase 2 = backend**. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-23 | Colunas da tabela: Fornecedor/PJ, Nome Empresa, Nome Funcionário, CNPJ, E-mail, Status, Nº Chamado, Abertura, Finalização, Tipo de Lançamento, Link. | kevin.maykel@cityinc.com.br |
+| 2026-07-17 | A-23 (rev.) | **Renomeadas** as 3 primeiras colunas e **invertida a ordem** das duas primeiras: `Fornecedor / PJ`→**Nome Fantasia**, `Nome Empresa`→**Razão Social**, `Nome Funcionário`→**Responsável Legal**; ordem passa a ser **Razão Social · Nome Fantasia · Responsável Legal**. Vale também para a exportação Excel. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-24 | Histórico vira **aba "Mensagens"** (Nome, E-mail, CNPJ, Regra, Dt/H Envio, Ano/Mês); sem botão Auditar. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-24 (rev.) | **Mantida a aba** e **adicionado botão na 1ª coluna** do grid que abre **modal com as mensagens daquele PJ** — as duas visões coexistem. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-25 | Exportação **somente Excel** (botão "EXCEL"); remove CSV e PDF (substitui A-10). | kevin.maykel@cityinc.com.br |
+| 2026-07-17 | A-26 | Frontend deve ser **React + TypeScript** com **SOLID** e **Object Calisthenics** desde a Fase 1 (mesmo mockado). A implementação em Vanilla JS será **refatorada**. | kevin.maykel@cityinc.com.br |
+| 2026-07-17 | A-27 | Coluna **Responsável Legal** nas Mensagens passa a exibir a **pessoa** (não a razão social); campo da Tabela de Alerta renomeado `nome` → **`responsavel_legal`**. Resolve **D-14**. | kevin.maykel@cityinc.com.br |
+| 2026-07-17 | A-28 | App será publicado **no SharePoint como iframe**; **identidade e controle de acesso vêm do SharePoint/Entra ID**. Resolve a direção de **R-04** do módulo de Recesso; abre **P-11..P-16** em `18`. | kevin.maykel@cityinc.com.br |
+| 2026-07-17 | A-29 | Frontend será **SPFx web part** (não SPA em iframe). Resolve **P-11**; converte P-12→S-06, P-13→S-09, P-14→S-02 e torna P-15 inaplicável. Backend segue a **CITY API**, que passará a validar **token de usuário RS256**. | kevin.maykel@cityinc.com.br |
 
 ### Decisões substituídas (histórico)
 | ID antigo | Substituído por | O que mudou |

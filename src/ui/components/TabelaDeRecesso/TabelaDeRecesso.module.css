@@ -1,0 +1,107 @@
+.secao {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.responsivo { width: 100%; overflow-x: auto; }
+
+.tabela {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.tabela th {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 18px;
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.tabela td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tabela tbody tr:hover { background-color: var(--color-surface-subtle); }
+
+.negrito { font-weight: 600; }
+.acao { text-align: center; }
+.inativo td { opacity: 0.65; }
+
+/* Coluna de ícone sem cabeçalho: só precisa caber o indicador. */
+.colunaAcao { width: 56px; text-align: center; }
+
+/* Extrato e Informações dividem a MESMA coluna, lado a lado. */
+.colunaAcoes { width: 120px; text-align: center; }
+
+.grupoDeAcoes {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.razaoSocial {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+/* Dado secundário sob o principal: nome fantasia e código da empresa. */
+.legenda {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.mono { font-family: var(--font-mono, monospace); }
+
+.botaoIcone {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  background-color: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.botaoIcone:hover {
+  background-color: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-status-pendente-text);
+}
+
+.iconeInativo {
+  display: inline-flex;
+  color: var(--color-text-muted);
+}
+
+.vazio {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-muted);
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}

@@ -1,0 +1,23 @@
+/*
+ * Tokens semânticos e derivados adicionais do projeto nf-pjs.
+ * Nota: Cores derivadas de status e escala de cinzas funcional para UI.
+ */
+:root {
+  /* Textos de status com alto contraste sobre fundos -soft */
+  --color-status-pendente-text: #000000; /* Laranja escuro derivado (contraste em texto sobre #fff3e0) */
+  --color-status-enviado-text: #000000;  /* Azul escuro derivado */
+  --color-status-recebido-text: #000000; /* Verde escuro derivado */
+  --color-danger-text: #000000;          /* Vermelho escuro derivado */
+
+  /* Escala de cinza funcional e neutros de UI */
+  --color-white: #ffffff;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+}

@@ -75,14 +75,15 @@ Registra cada NF/chamado do Tomticket.
 
 ## 4. Tabela de Alerta — `APP.TB_GER_NF_PJ_ALERTA`
 
-**Log de alertas enviados** (consolida o antigo "Comunicado" — A-18). Um registro por envio bem-sucedido; é a fonte do Histórico de Comunicação do Dashboard.
+**Log de alertas enviados** (consolida o antigo "Comunicado" — A-18). Um registro por envio bem-sucedido; é a fonte do Histórico de Comunicação do Dashboard. O identificador humano do destinatário é o **responsável legal** (pessoa), não a razão social (A-27).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `id_alerta` | INT IDENTITY (PK) | Sim | PK |
 | `id_pj` | FK → Fornecedor | Não | Vínculo com o fornecedor (quando resolvido) |
 | `email` | string | Sim | E-mail destinatário (chave junto de regra/competência) |
-| `nome` / `cnpj` | string | Não | Snapshot |
+| `responsavel_legal` | string | Sim | **Pessoa** responsável legal do PJ (não a razão social) |
+| `cnpj` | string | Não | Snapshot |
 | `regra` | enum | Sim | `D-3` \| `D` \| `D+1` \| `D+3` |
 | `data_hora_envio` | datetime | Sim | Momento do disparo |
 | `mes_ano_referencia` | VARCHAR(10) `"MM-AAAA"` | Sim | Competência |

@@ -26,12 +26,12 @@ Renderiza **todos os fornecedores ativos** e o **status calculado**. A granulari
 **por `(e-mail, Tipo de Lançamento)`** — um PJ com dois chamados (Contratual + Reembolso) aparece em
 **duas linhas**, cada uma com seu próprio chamado e status (A-05/A-14; ver `04` §2.1).
 
-Colunas da tabela (A-23 — ordem definida):
+Colunas da tabela (A-23, revisada — ordem definida):
 | Coluna | Origem |
 |---|---|
-| **Fornecedor / PJ** | Apelido do fornecedor (Lista de PJ) |
-| **Nome Empresa** | Razão social (Lista de PJ / Fato) |
-| **Nome Funcionário** | `name` do chamado Tomticket (quem abriu) |
+| **Razão Social** | Razão social do fornecedor (Lista de PJ / Fato) |
+| **Nome Fantasia** | Apelido/nome fantasia do fornecedor (Lista de PJ) |
+| **Responsável Legal** | `name` do chamado Tomticket (quem abriu) |
 | CNPJ | Lista de PJ / Fato |
 | E-mail | Lista de PJ / Fato |
 | Status | Motor de status (`Pendente`/`Enviado`/`Recebido`) |
@@ -56,11 +56,12 @@ O histórico é exposto de **duas formas complementares**, ambas lendo a **Tabel
 ### 2.1 Aba "Mensagens" (visão geral)
 O Dashboard tem duas abas: **Status** (grid de fornecedores) e **Mensagens**.
 - Lista **todos os alertas** disparados (todos os PJ).
-- **Colunas:** `Nome`, `E-mail`, `CNPJ`, `Regra` (D-3/D/D+1/D+3), `Data/Hora de Envio`, `Ano/Mês`.
+- **Colunas:** `Responsável Legal`, `E-mail`, `CNPJ`, `Regra` (D-3/D/D+1/D+3), `Data/Hora de Envio`, `Ano/Mês`.
+  > O campo exibe a **pessoa** responsável legal do PJ (A-27), não a razão social.
 - Ordenação do mais recente para o mais antigo.
 
 ### 2.2 Modal por PJ (visão focada)
-- **Botão na 1ª coluna do grid** (antes de "Fornecedor / PJ"), rotulado com ícone de mensagem.
+- **Botão na 1ª coluna do grid** (antes de "Razão Social"), rotulado com ícone de mensagem.
 - Abre um **modal** com as mensagens **daquele PJ** (filtro por e-mail — `listAlertas(email)`).
 - **Cabeçalho do modal:** Fornecedor, CNPJ e E-mail (identificação do PJ).
 - **Colunas do modal:** `Regra`, `Data/Hora de Envio`, `Ano/Mês`, `Tipo` (Preventivo/Cobrança).
@@ -78,7 +79,7 @@ O Dashboard tem duas abas: **Status** (grid de fornecedores) e **Mensagens**.
 > **Tomticket** e **HCM**). O Excel é permitido **apenas como formato de exportação**.
 
 ### Colunas do arquivo (mesmas da tabela)
-`Fornecedor / PJ`, `Nome Empresa`, `Nome Funcionário`, `CNPJ`, `E-mail`, `Status`, `Nº Chamado`, `Abertura`, `Finalização`, `Tipo de Lançamento`, `Link`.
+`Razão Social`, `Nome Fantasia`, `Responsável Legal`, `CNPJ`, `E-mail`, `Status`, `Nº Chamado`, `Abertura`, `Finalização`, `Tipo de Lançamento`, `Link`.
 
 ### Abas (Sheets)
 - **Status Notas Fiscais**: Aba principal contendo as notas fiscais dos fornecedores, filtradas pelos parâmetros ativos no painel.

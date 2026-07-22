@@ -37,6 +37,11 @@ Detalhamento em [10-roadmap-fases-tarefas.md](10-roadmap-fases-tarefas.md).
 | [01-arquitetura-e-stack.md](01-arquitetura-e-stack.md) | Arquitetura, componentes, stack | Todas |
 | [11-identidade-visual.md](11-identidade-visual.md) | Marca City: paleta, tipografia, logo, tokens | **Fase 1** |
 | [13-referencia-payloads-mock.md](13-referencia-payloads-mock.md) | Payloads mock HCM/Tomticket, mapeamentos, template e-mail | **Fase 1** (base do mock) |
+| [14-frontend-react-ts-arquitetura.md](14-frontend-react-ts-arquitetura.md) | Arquitetura alvo React+TS (Ports & Adapters, Value Objects) | **Fase 1** |
+| [15-padroes-solid-e-object-calisthenics.md](15-padroes-solid-e-object-calisthenics.md) | Padrões de código: SOLID, Object Calisthenics, lint | **Fase 1** |
+| [16-plano-refatoracao-frontend.md](16-plano-refatoracao-frontend.md) | Plano de migração + **checklist de paridade** (não regredir) | **Fase 1** |
+| [17-correcoes-pos-validacao-refatoracao.md](17-correcoes-pos-validacao-refatoracao.md) | **Backlog de correção** da refatoração (C-01 a C-05) | **Fase 1** |
+| [18-hospedagem-sharepoint-e-identidade.md](18-hospedagem-sharepoint-e-identidade.md) | Publicação no **SharePoint (iframe)**, identidade/autenticação e impacto no backend | Fases 1–2 |
 | [07-frontend-dashboard.md](07-frontend-dashboard.md) | Dashboard, filtros, status interativo, exportação | **Fase 1** |
 | [04-regras-de-negocio-status.md](04-regras-de-negocio-status.md) | Motor de status (Pendente/Enviado/Recebido) | Fase 1 (mock) → 2 (real) |
 | [02-dicionario-de-dados.md](02-dicionario-de-dados.md) | Modelo de dados, 3 tabelas, cardinalidade | **Fase 2** |
@@ -47,6 +52,19 @@ Detalhamento em [10-roadmap-fases-tarefas.md](10-roadmap-fases-tarefas.md).
 | [08-mocks-e-testes.md](08-mocks-e-testes.md) | Mocks, cenários e validação | Fases 1–3 |
 | [09-pendencias-e-decisoes.md](09-pendencias-e-decisoes.md) | Pendências (P-xx), decisões (A-xx), registro | Todas |
 | [10-roadmap-fases-tarefas.md](10-roadmap-fases-tarefas.md) | Mapa de fases/tarefas → documentos | Todas |
+
+## Módulos
+
+| Módulo | Documentação | Natureza |
+|---|---|---|
+| **Notas Fiscais (PJ)** | esta pasta (`00`–`17`) | **Leitura** — dados vêm de Tomticket + HCM |
+| **Gestão de Recesso** | [`modulo-recesso/`](modulo-recesso/README.md) | **Escrita** — o nf-pjs é o sistema de origem |
+
+### Entrega e hospedagem
+
+| Assunto | Documentação |
+|---|---|
+| **SPFx / SharePoint** (A-29) | [`spfx-sharepoint/`](spfx-sharepoint/README.md) — migração, identidade Entra ID, token de usuário na CITY API |
 
 ## Convenções de terminologia (canônica)
 
