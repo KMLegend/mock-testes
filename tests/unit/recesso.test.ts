@@ -90,6 +90,25 @@ describe('MotorDeCreditoMensal', () => {
     expect(gerados[0]!.competencia.paraExibicao()).toBe('15/04/2023');
   });
 
+  it('contrato com 1 ANO exato rende 30 dias (12 competências)', () => {
+    const umAno = new MotorDeCreditoMensal(() => new Date(2026, 6, 22));
+    const gerados = umAno.gerarPara(contrato('2025-07-22', '2028-07-21'), ExtratoDeRecesso.vazio());
+
+    expect(gerados.length).toBe(12);
+    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(30);
+  });
+
+  it('contrato com 4 MESES rende 10 dias', () => {
+    const quatroMeses = new MotorDeCreditoMensal(() => new Date(2026, 6, 22));
+    const gerados = quatroMeses.gerarPara(
+      contrato('2026-03-22', '2028-03-21'),
+      ExtratoDeRecesso.vazio()
+    );
+
+    expect(gerados.length).toBe(4);
+    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(10);
+  });
+
   it('contrato com menos de um mês não gera crédito', () => {
     const gerados = motor.gerarPara(contrato('2026-07-01', '2027-12-31'), ExtratoDeRecesso.vazio());
     expect(gerados.length).toBe(0);

@@ -67,6 +67,26 @@ export const mockFornecedoresData: Fornecedor[] = [
     ativo: true
   }),
   new Fornecedor({
+    codEmpresa: '018',
+    empresa: 'ANA COSTA ARQUITETURA LTDA',
+    apelido: 'Ana Costa',
+    responsavelLegal: 'Ana Costa',
+    email: Email.de('ana.costa@cityinc.com.br'),
+    tipoInscricao: '1',
+    cnpj: Cnpj.de('44444444000144'),
+    ativo: true
+  }),
+  new Fornecedor({
+    codEmpresa: '019',
+    empresa: 'BRUNO LIMA PROJETOS LTDA',
+    apelido: 'Bruno Lima',
+    responsavelLegal: 'Bruno Lima',
+    email: Email.de('bruno.lima@cityinc.com.br'),
+    tipoInscricao: '1',
+    cnpj: Cnpj.de('55555555000155'),
+    ativo: true
+  }),
+  new Fornecedor({
     codEmpresa: '017',
     empresa: 'FORNECEDOR INATIVO LTDA',
     apelido: 'Inativo',
@@ -86,13 +106,18 @@ export const mockFornecedoresData: Fornecedor[] = [
  * Valores fixos, não sorteados em runtime — o saldo esperado de cada PJ precisa ser
  * reproduzível entre recargas e entre testes.
  *
- * Cenários cobertos (o acúmulo é mensal: 2,5 dias × proporção do contrato):
+ * Cenários cobertos (o acúmulo é mensal: 2,5 dias × proporção do contrato).
+ * Os saldos abaixo valem para a data de referência 22/07/2026 e crescem com o tempo:
+ *
  *   012  15/03/2023  100%  → dia base 15
  *   013  01/06/2023  100%  → dia base 01
  *   014  23/09/2021  100%  → contrato mais antigo, maior saldo
  *   015  29/02/2024   40%  → bissexto: competência cai em 28/02 nos meses curtos
  *   015  05/11/2024   60%  → mesmo PJ, segundo contrato: 40% + 60% = 100%
  *   016  18/08/2025  100%  → contrato recente, saldo baixo
+ *   018  22/07/2025  100%  → 1 ANO exato: 12 competências = 30 dias
+ *   019  22/03/2026  100%  → 4 MESES: 4 competências = 10 dias
+ *   017  10/05/2022  100%  → PJ inativo no cadastro
  */
 export const mockContratosData: Contrato[] = [
   new Contrato({
@@ -158,6 +183,29 @@ export const mockContratosData: Contrato[] = [
     valorMensal: 8000,
     empresaResponsavel: '001',
     nomeEmpresaResponsavel: 'CITY INCORPORADORA LTDA'
+  }),
+  // Contrato com EXATAMENTE 1 ano de vigência na data de referência:
+  // 12 competências mensais × 2,5 = 30 dias — o mesmo que um ano do modelo antigo.
+  new Contrato({
+    codEmpresa: '018',
+    codContrato: 'CONTRATO-018-A',
+    nomeContrato: 'CONTRATO ANA - ARQUITETURA',
+    dataInicio: DataHora.de('2025-07-22'),
+    dataFim: DataHora.de('2028-07-21'),
+    valorMensal: 7000,
+    empresaResponsavel: '001',
+    nomeEmpresaResponsavel: 'CITY INCORPORADORA LTDA'
+  }),
+  // Contrato jovem, com 4 meses completos: 4 × 2,5 = 10 dias.
+  new Contrato({
+    codEmpresa: '019',
+    codContrato: 'CONTRATO-019-A',
+    nomeContrato: 'CONTRATO BRUNO - PROJETOS',
+    dataInicio: DataHora.de('2026-03-22'),
+    dataFim: DataHora.de('2028-03-21'),
+    valorMensal: 5500,
+    empresaResponsavel: '002',
+    nomeEmpresaResponsavel: 'SPE RESIDENCIAL PRAÇA DO SOL EMPREENDIMENTOS LTDA'
   }),
   // PJ inativo no cadastro: a grade mostra o contrato com o ícone de status e
   // bloqueia lançamentos, mas o histórico continua consultável.
