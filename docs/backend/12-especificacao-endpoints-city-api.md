@@ -35,6 +35,11 @@ status: normativo-para-implementacao
 
 ## 1. Origem da Lista de PJ (HCM → DB City)
 
+> 📐 **Design detalhado da fonte plugável em [`19-fonte-de-cadastro-modular.md`](19-fonte-de-cadastro-modular.md).**
+> Enquanto a personalização do HCM está em debate, o backend depende de um **contrato JSON estável**
+> (não do HCM); a fonte troca em `dependencies.py` e o HCM, quando pronto, é **forçado** ao contrato
+> pela validação Pydantic. Esta seção fica como a visão resumida.
+
 - Criar `IFontePj` (interface) + `FonteHCM` (real) + `FonteMock` (payload `13` §1).
 - Sincronizar os PJ ativos → `APP.TB_GER_NF_PJ_FORNECEDOR` (fonte da verdade do Left Join).
 - **Chave de casamento com o Tomticket (A-14):** **e-mail** (normalizado trim + lowercase). Garantir

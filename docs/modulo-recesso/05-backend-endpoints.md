@@ -10,6 +10,15 @@ status: normativo-para-implementacao
 > Segue a arquitetura de `docs/06` e o padrão de spec de `docs/12`. **Novidade estrutural:** este é o
 > **primeiro módulo de escrita** da base — todos os anteriores eram somente leitura.
 
+> ⚠️ **Atualização de modelo pendente.** As rotas abaixo ainda descrevem o modelo **anual**
+> (`periodoAquisitivo`, `quantidade` inteiro, saldo único por PJ). O frontend já migrou para
+> **acúmulo mensal por contrato com proporção** (ver `02` revisado). Estas rotas precisam ser
+> reescritas para `codContrato`, competência mensal e `quantidade` fracionária antes da Fase 2.
+>
+> 📐 O **cadastro** (fornecedores + contratos, incl. `proporcaoDeRecesso`) entra por
+> [`docs/backend/19-fonte-de-cadastro-modular.md`](../backend/19-fonte-de-cadastro-modular.md) — contrato JSON estável,
+> fonte plugável em `dependencies.py`.
+
 ## 1. O que muda por ser escrita
 
 | Aspecto | Módulos anteriores (leitura) | **Recesso (escrita)** |

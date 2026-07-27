@@ -14,6 +14,10 @@ status: normativo
 > disparo na **Tabela de Alerta**. Compartilha a **camada de dados** com o domínio da CITY API
 > (mesmos repositórios/SQL Server), por ser Python.
 
+> 📐 Este documento define **as regras**. O **desenho do scheduler + worker** (arquitetura, gatilho
+> Airflow, envio por Microsoft Graph, portas/adaptadores, SOLID) está em
+> [`20-scheduler-de-alertas.md`](20-scheduler-de-alertas.md).
+
 ## 1. Princípio geral (Tarefa 2.3)
 
 São elegíveis os fornecedores que **ainda não entregaram** no período — ou seja, **exclui** quem já

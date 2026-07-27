@@ -62,7 +62,7 @@ O app continua sendo a SPA Vite atual, hospedada num domínio próprio e embarca
 - Aceitável **apenas** para personalização visual ("Olá, Fulano"), **nunca** para gravar `lancado_por`.
 
 > ✅ **DECIDIDO: Opção A — SPFx** (A-29). Implementação detalhada em
-> [`spfx-sharepoint/`](spfx-sharepoint/README.md). As seções sobre iframe/MSAL (§5 e Opção B) ficam
+> [`spfx-sharepoint/`](../spfx-sharepoint/README.md). As seções sobre iframe/MSAL (§5 e Opção B) ficam
 > como **registro das alternativas avaliadas** — não se aplicam mais.
 
 ## 4. Impacto no backend (CITY API)
@@ -123,7 +123,7 @@ export interface UsuarioAtual {
 
 | ID | Pendência | Situação |
 |---|---|---|
-| ~~P-11~~ | ~~SPFx (A) ou SPA em iframe + MSAL (B)?~~ | ✅ **RESOLVIDA → Opção A (SPFx)** — decisão **A-29**. Implementação em [`spfx-sharepoint/`](spfx-sharepoint/README.md) |
+| ~~P-11~~ | ~~SPFx (A) ou SPA em iframe + MSAL (B)?~~ | ✅ **RESOLVIDA → Opção A (SPFx)** — decisão **A-29**. Implementação em [`spfx-sharepoint/`](../spfx-sharepoint/README.md) |
 | **P-12** | **Autorização** no backend: todo usuário do SharePoint pode lançar? Há perfil só-leitura? | **Aberto** |
 | **P-13** | Tenant, site e página do SharePoint onde o app será publicado | **Aberto** |
 | **P-14** | Registro do app no **Entra ID** (App Registration): client id, scopes, redirect URIs | **Aberto** |
@@ -131,5 +131,5 @@ export interface UsuarioAtual {
 | **P-16** | CITY API passa a **validar token de usuário** (RS256/JWKS) — quem implementa e quando | **Aberto** |
 
 > **P-11 foi resolvida: Opção A (SPFx).** As pendências derivadas migraram para
-> [`spfx-sharepoint/05-pendencias-e-decisoes.md`](spfx-sharepoint/05-pendencias-e-decisoes.md) §4
+> [`spfx-sharepoint/05-pendencias-e-decisoes.md`](../spfx-sharepoint/05-pendencias-e-decisoes.md) §4
 > (P-12→S-06, P-13→S-09, P-14→S-02; **P-15 deixou de se aplicar** — o SPFx é servido pelo SharePoint).

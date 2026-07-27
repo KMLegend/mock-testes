@@ -21,5 +21,12 @@ export const TEXTOS_POR_MODULO = {
     opcoesStatus: STATUS_RECESSO,
     // Contratos encerrados e PJs inativos ficam fora da visão do dia a dia.
     statusPadrao: 'Ativo'
+  },
+  cadastro: {
+    titulo: 'Base de PJs',
+    subtitulo: 'Carga da base de fornecedores e contratos por planilha (fonte paliativa até o HCM).',
+    placeholderBusca: '',
+    opcoesStatus: STATUS_NOTAS_FISCAIS,
+    statusPadrao: 'all'
   }
 } as const;

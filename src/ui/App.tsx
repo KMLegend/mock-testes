@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import styles from './App.module.css';
 import { Header } from './components/Header/Header';
 import { FiltrosDaBusca } from './components/FiltrosDaBusca/FiltrosDaBusca';
 import { HudDeModulos, ModuloAtivo } from './components/HudDeModulos/HudDeModulos';
 import { ModuloRecesso } from './ModuloRecesso';
+import { ModuloCadastro } from './ModuloCadastro';
 import { useRecesso } from './hooks/useRecesso';
+import { useCargaDeCadastro } from './hooks/useCargaDeCadastro';
+import { useModalPj } from './hooks/useModalPj';
 import { TEXTOS_POR_MODULO } from './textosPorModulo';
 import { Abas, AbaAtiva } from './components/Abas/Abas';
 import { CardsDeResumo } from './components/CardsDeResumo/CardsDeResumo';
@@ -42,6 +45,8 @@ export const App: React.FC = () => {
 
   const [moduloAtivo, setModuloAtivo] = useState<ModuloAtivo>('notas-fiscais');
   const ehModuloNotasFiscais = moduloAtivo === 'notas-fiscais';
+  const ehModuloRecesso = moduloAtivo === 'recesso';
+  const ehModuloCadastro = moduloAtivo === 'cadastro';
   const textos = TEXTOS_POR_MODULO[moduloAtivo];
 
   const recesso = useRecesso();
@@ -52,6 +57,13 @@ export const App: React.FC = () => {
     [recesso.linhas, statusFilter, searchQuery]
   );
 
+  // Ao aplicar a carga, recarrega as grades para refletir a base nova.
+  const aoAplicarCarga = useCallback((): void => {
+    recarregar();
+    recesso.atualizar();
+  }, [recarregar, recesso]);
+  const carga = useCargaDeCadastro(aoAplicarCarga);
+
   // Cada módulo tem seu domínio de status (Pendente/Enviado × Ativo/Inativo):
   // trocar de módulo aplica o status padrão do destino.
   const handleTrocarModulo = (modulo: ModuloAtivo): void => {
@@ -60,30 +72,7 @@ export const App: React.FC = () => {
   };
 
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>('status');
-  const [modalState, setModalState] = useState<{
-    aberto: boolean;
-    email: string;
-    nome: string;
-    cnpj: string;
-  }>({
-    aberto: false,
-    email: '',
-    nome: '',
-    cnpj: ''
-  });
-
-  const handleAbrirModalPj = (email: string, nome: string, cnpj: string) => {
-    setModalState({
-      aberto: true,
-      email,
-      nome,
-      cnpj
-    });
-  };
-
-  const handleFecharModal = () => {
-    setModalState((prev) => ({ ...prev, aberto: false }));
-  };
+  const modal = useModalPj();
 
   const handleExportar = () => {
     if (!ehModuloNotasFiscais) {
@@ -105,6 +94,7 @@ export const App: React.FC = () => {
 
         <HudDeModulos moduloAtivo={moduloAtivo} onTrocarModulo={handleTrocarModulo} />
 
+        {!ehModuloCadastro && (
         <FiltrosDaBusca
           ano={ano}
           mes={mes}
@@ -119,13 +109,16 @@ export const App: React.FC = () => {
           mostrarMes={ehModuloNotasFiscais}
           opcoesStatus={textos.opcoesStatus}
           placeholderBusca={textos.placeholderBusca}
-          {...(ehModuloNotasFiscais ? {} : {
+          {...(ehModuloRecesso ? {
             onAtualizar: recesso.atualizar,
             atualizando: recesso.atualizando
-          })}
+          } : {})}
         />
+        )}
 
-        {!ehModuloNotasFiscais && (
+        {ehModuloCadastro && <ModuloCadastro controle={carga} />}
+
+        {ehModuloRecesso && (
           <ModuloRecesso controle={recesso} linhas={linhasRecesso} />
         )}
 
@@ -143,7 +136,7 @@ export const App: React.FC = () => {
               linhasGrid={linhasGrid}
               searchQuery={searchQuery}
               statusFilter={statusFilter}
-              onAbrirModalPj={handleAbrirModalPj}
+              onAbrirModalPj={modal.abrir}
             />
           </div>
         )}
@@ -155,11 +148,11 @@ export const App: React.FC = () => {
         )}
 
         <ModalDeMensagens
-          aberto={modalState.aberto}
-          emailPj={modalState.email}
-          nomePj={modalState.nome}
-          cnpjPj={modalState.cnpj}
-          onFechar={handleFecharModal}
+          aberto={modal.estado.aberto}
+          emailPj={modal.estado.email}
+          nomePj={modal.estado.nome}
+          cnpjPj={modal.estado.cnpj}
+          onFechar={modal.fechar}
         />
 
         <PainelDeSimulacao onDataChange={recarregar} />

@@ -19,6 +19,8 @@ import { LancarOcorrenciaDeRecesso } from '../../application/use-cases/LancarOco
 import { EncerrarContrato } from '../../application/use-cases/EncerrarContrato';
 import { ExportarRecesso } from '../../application/use-cases/ExportarRecesso';
 import { ExportadorDeRecessoXlsx } from '../../infrastructure/xlsx/ExportadorDeRecessoXlsx';
+import { BaseDeCadastroStore } from '../../infrastructure/mock/cadastro/BaseDeCadastroStore';
+import { CargaDeCadastroMock } from '../../infrastructure/mock/cadastro/CargaDeCadastroMock';
 
 export interface CompositionRootProps {
   readonly children: React.ReactNode;
@@ -26,9 +28,12 @@ export interface CompositionRootProps {
 
 export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) => {
   const dependencias = useMemo<Dependencias>(() => {
-    const fornecedorRepo = new FornecedorRepositoryEmMemoria();
+    // Store de cadastro compartilhado: os dois repositórios leem daqui, e a carga
+    // de planilha escreve aqui (persistido em localStorage).
+    const cadastroStore = new BaseDeCadastroStore();
+    const fornecedorRepo = new FornecedorRepositoryEmMemoria(cadastroStore);
     const chamadoRepo = new ChamadoRepositoryEmMemoria();
-    const contratoRepo = new ContratoRepositoryEmMemoria();
+    const contratoRepo = new ContratoRepositoryEmMemoria(cadastroStore);
     const alertaRepo = new AlertaRepositoryEmMemoria();
     const extratorCnpj = new ExtratorCnpjMock();
     const exportador = new ExportadorXlsx();
@@ -48,6 +53,7 @@ export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) =>
       exportarPlanilha: new ExportarPlanilha(exportador),
       chamadoRepo,
       fornecedorRepo,
+      contratoRepo,
       listarContratosParaRecesso: new ListarContratosParaRecesso({
         contratoRepo, fornecedorRepo, ocorrenciaRepo, motor: motorDeCredito
       }),
@@ -55,7 +61,8 @@ export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) =>
         ocorrenciaRepo, contratoRepo, usuarioAtual
       }),
       encerrarContrato: new EncerrarContrato({ ocorrenciaRepo, contratoRepo, usuarioAtual }),
-      exportarRecesso: new ExportarRecesso(new ExportadorDeRecessoXlsx())
+      exportarRecesso: new ExportarRecesso(new ExportadorDeRecessoXlsx()),
+      cargaDeCadastro: new CargaDeCadastroMock(cadastroStore)
     };
   }, []);
 

@@ -5,10 +5,12 @@ import { ListarMensagensDoFornecedor } from '../../application/use-cases/ListarM
 import { ExportarPlanilha } from '../../application/use-cases/ExportarPlanilha';
 import { ChamadoRepository } from '../../application/ports/ChamadoRepository';
 import { FornecedorRepository } from '../../application/ports/FornecedorRepository';
+import { ContratoRepository } from '../../application/ports/ContratoRepository';
 import { ListarContratosParaRecesso } from '../../application/use-cases/ListarContratosParaRecesso';
 import { LancarOcorrenciaDeRecesso } from '../../application/use-cases/LancarOcorrenciaDeRecesso';
 import { EncerrarContrato } from '../../application/use-cases/EncerrarContrato';
 import { ExportarRecesso } from '../../application/use-cases/ExportarRecesso';
+import { CargaDeCadastro } from '../../application/ports/CargaDeCadastro';
 
 export interface Dependencias {
   readonly obterStatus: ObterStatusDaCompetencia;
@@ -17,10 +19,12 @@ export interface Dependencias {
   readonly exportarPlanilha: ExportarPlanilha;
   readonly chamadoRepo: ChamadoRepository;
   readonly fornecedorRepo: FornecedorRepository;
+  readonly contratoRepo: ContratoRepository;
   readonly listarContratosParaRecesso: ListarContratosParaRecesso;
   readonly lancarOcorrenciaDeRecesso: LancarOcorrenciaDeRecesso;
   readonly encerrarContrato: EncerrarContrato;
   readonly exportarRecesso: ExportarRecesso;
+  readonly cargaDeCadastro: CargaDeCadastro;
 }
 
 export const DependenciasContext = createContext<Dependencias | null>(null);

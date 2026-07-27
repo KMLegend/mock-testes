@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './HudDeModulos.module.css';
 
-export type ModuloAtivo = 'notas-fiscais' | 'recesso';
+export type ModuloAtivo = 'notas-fiscais' | 'recesso' | 'cadastro';
 
 export interface HudDeModulosProps {
   readonly moduloAtivo: ModuloAtivo;
@@ -10,7 +10,8 @@ export interface HudDeModulosProps {
 
 const MODULOS: readonly { readonly id: ModuloAtivo; readonly rotulo: string }[] = [
   { id: 'notas-fiscais', rotulo: 'Notas Fiscais' },
-  { id: 'recesso', rotulo: 'Gestão de Recesso' }
+  { id: 'recesso', rotulo: 'Gestão de Recesso' },
+  { id: 'cadastro', rotulo: 'Base de PJs' }
 ];
 
 /** HUD de seleção de módulo — hierarquicamente ACIMA das abas internas (docs/modulo-recesso/04 §1). */

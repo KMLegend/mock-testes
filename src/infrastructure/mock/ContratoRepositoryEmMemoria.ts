@@ -1,11 +1,12 @@
 import { ContratoRepository } from '../../application/ports/ContratoRepository';
 import { Contrato } from '../../domain/entities/Contrato';
-import { mockContratosData } from './dados/mockData';
+import { BaseDeCadastroStore } from './cadastro/BaseDeCadastroStore';
 
+/** Lê do store ao vivo — a carga de planilha reflete sem recriar dependências. */
 export class ContratoRepositoryEmMemoria implements ContratoRepository {
-  private readonly contratos: Contrato[] = [...mockContratosData];
+  constructor(private readonly store: BaseDeCadastroStore) {}
 
   async todos(): Promise<Contrato[]> {
-    return [...this.contratos];
+    return this.store.contratos();
   }
 }
