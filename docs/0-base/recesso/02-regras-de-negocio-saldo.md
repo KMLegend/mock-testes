@@ -167,11 +167,12 @@ histórico **permanece** visível.
 
 | Caso | Tratamento |
 |---|---|
-| PJ **sem contrato** no HCM | Não aparece na grade (a linha é o contrato). |
+| PJ **sem contrato** no HCM/Planilha | Não aparece na grade (a linha da grade é o contrato). |
+| Contrato **soft-deleted** (`is_delete` preenchido) | Ocorrências históricas de recesso permanecem preservadas (somente leitura); **não gera novos créditos automáticos** e **bloqueia novos lançamentos manuais**. Saldo fica congelado. |
 | Contrato com `dataInicio` **futura** | Nenhum mês completo → sem crédito. |
 | Contrato com **menos de um mês** | Saldo 0 até o primeiro aniversário mensal. |
 | Contrato **inativo** (`dataFim` passada) | Para de acumular no fim da vigência. Status derivado automaticamente. |
-| PJ **inativo** no cadastro | Contrato aparece com ícone de status; novos lançamentos bloqueados; histórico visível. |
+| PJ **inativo** (sem contrato em vigência) | O fornecedor permanece no cadastro; contratos inativos/soft-deleted aparecem com ícone de status; lançamentos manuais bloqueados. |
 | **29/02** como dia base | Cai em 28/02 nos anos não bissextos e **volta** para 29/02. |
 | Extrato **vazio** | Saldo atual = **0**; exibir estado vazio, não erro. |
 | Data ISO **sem hora** (`2023-01-01`) | Interpretar no fuso **local** — ver `07` §5.1. |

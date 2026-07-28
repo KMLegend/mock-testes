@@ -58,20 +58,41 @@ Competência **`mes_ano_referencia VARCHAR(10)` no formato sistêmico `"MM-AAAA"
 ```sql
 CREATE TABLE APP.TB_GER_NF_PJ_FORNECEDOR (
     id_pj                    INT IDENTITY(1,1) NOT NULL,
-    cod_empresa              VARCHAR(20),           -- HCM: Cod_Empresa
+    cod_empresa              VARCHAR(20) NOT NULL,  -- Chave natural do PJ (HCM/Planilha)
     nome                     VARCHAR(255) NOT NULL, -- HCM: Empresa
     apelido                  VARCHAR(255),          -- HCM: Apelido
     email                    VARCHAR(255) NOT NULL, -- CHAVE DE CASAMENTO (A-14)
     cnpj                     VARCHAR(14),           -- 14 dígitos, sem máscara (desambiguação/relatório)
     tipo_inscricao           VARCHAR(5),            -- HCM: Tipo_Inscricao
     tipo_lancamento_esperado VARCHAR(40),
-    ativo                    BIT NOT NULL DEFAULT 1,
     origem_hcm_id            VARCHAR(50),
-    is_delete                VARCHAR(50),
     data_inclusao            DATETIME2 DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_Nf_Pj_Fornecedor PRIMARY KEY (id_pj),
-    CONSTRAINT UQ_Nf_Pj_Fornecedor UNIQUE (email)    -- e-mail é a chave de casamento
+    CONSTRAINT UQ_Nf_Pj_Fornecedor_CodEmpresa UNIQUE (cod_empresa), -- Acumulativa (UNIQUE absoluta)
+    CONSTRAINT UQ_Nf_Pj_Fornecedor_Email UNIQUE (email)              -- e-mail é a chave de casamento
 );
+```
+
+### 2.1.A Contrato — `APP.TB_GER_NF_PJ_CONTRATO`
+```sql
+CREATE TABLE APP.TB_GER_NF_PJ_CONTRATO (
+    id_contrato              INT IDENTITY(1,1) NOT NULL,
+    cod_empresa              VARCHAR(20) NOT NULL,  -- FK para APP.TB_GER_NF_PJ_FORNECEDOR.cod_empresa
+    cod_contrato             VARCHAR(50) NOT NULL,  -- Código do contrato no ERP
+    nome_contrato            VARCHAR(255),
+    data_inicio              DATE NOT NULL,
+    data_fim                 DATE NOT NULL,
+    valor_mensal             DECIMAL(10,2),
+    empresa_vinculada_codigo VARCHAR(20) NOT NULL,  -- Ex.: '001'
+    empresa_vinculada_nome   VARCHAR(255) NOT NULL, -- Ex.: 'CITY INCORPORADORA LTDA'
+    is_delete                VARCHAR(50),           -- NULL = ativo; timestamp = soft-deleted na importação
+    data_inclusao            DATETIME2 DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_Nf_Pj_Contrato PRIMARY KEY (id_contrato)
+);
+-- Chave natural composta com índice único FILTRADO (permite histórico soft-deleted sem conflito)
+CREATE UNIQUE INDEX UQ_Nf_Pj_Contrato_Empresa_Cod
+    ON APP.TB_GER_NF_PJ_CONTRATO (cod_empresa, cod_contrato)
+    WHERE is_delete IS NULL;
 ```
 
 ### 2.2 Fato (recepção de NF) — `APP.TB_GER_NF_PJ_RECEPCAO`
@@ -190,7 +211,13 @@ LEFT JOIN APP.TB_GER_NF_PJ_RECEPCAO f
        ON f.email = pj.email                  -- A-14: EMAIL é a chave (trim+lowercase)
       AND f.mes_ano_referencia = :mesAnoReferencia
       AND f.is_delete IS NULL
-WHERE pj.ativo = 1 AND pj.is_delete IS NULL
+WHERE EXISTS (
+  SELECT 1 FROM APP.TB_GER_NF_PJ_CONTRATO c
+  WHERE c.cod_empresa = pj.cod_empresa
+    AND c.is_delete IS NULL
+    AND c.data_inicio <= GETDATE()
+    AND c.data_fim >= GETDATE()
+)
 ORDER BY pj.nome;
 ```
 > - Competência e `is_delete` da Fato ficam no **`ON`** (não no `WHERE`) para preservar Pendentes (`04` §4, `08` §2).

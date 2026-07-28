@@ -108,6 +108,15 @@ Dado `D` = dia 1 do mês **seguinte** à competência:
 - Casamento por **e-mail**; desambiguação por **Marker** (PDF) quando >1 contrato (P-09).
 - Interpretação real do "Mês Referente" com dados de produção (amostra).
 
-## 7. Dados de teste da Lista de PJ
+## 7. Dados de teste da Lista de PJ e Carga de Cadastro
 
-Criar uma Lista de PJ de teste com pelo menos: um PJ que entrega, um que não entrega, um com `Ambas`, um com **e-mail em caixa diferente** do chamado, um com **>1 contrato** (para o Marker), e um inativo (para garantir que é excluído).
+Criar uma Lista de PJ de teste com pelo menos: um PJ que entrega, um que não entrega, um com `Ambas`, um com **e-mail em caixa diferente** do chamado, um com **>1 contrato** (para o Marker), e um inativo (sem contrato em vigência) para validar a derivação de status.
+
+### 7.1 Cenários de teste de importação e ciclo de vida
+
+1. **Fornecedor permanente (acumulativo):** Subir planilha sem um fornecedor que constava na anterior → fornecedor **permanece** no cadastro (não é deletado).
+2. **Soft Delete de contrato:** Subir planilha sem um contrato de um PJ → contrato recebe `is_delete = timestamp`. Ocorrências de recesso vinculadas ao contrato permanecem intactas (somente leitura).
+3. **PJ torna-se inativo por falta de contrato:** Se todos os contratos de um PJ forem soft-deleted ou expirarem vigência → PJ passa a ser classificado como **inativo** (não aparece como Pendente na competência de NF).
+4. **Reativação de contrato:** Subir planilha contendo um contrato previamente soft-deleted → contrato tem `is_delete` limpo (`NULL`), mantendo o mesmo `id_contrato` e reativando a vigência.
+5. **Idempotência de importação:** Importar a mesma planilha 2 vezes consecutivas → **0 inserções e 0 desativações** no relatório.
+6. **Ausência de conflito de chave:** Mesma combinação `(cod_empresa, cod_contrato)` previamente soft-deleted e re-inserida como novo contrato → aceita sem erro de chave duplicada (garantido pelo índice filtrado `WHERE is_delete IS NULL`).

@@ -36,7 +36,9 @@ O fluxo do usuário é um ciclo: **baixa o modelo → preenche → sobe → lê 
 
 Carga manual = erro de digitação é regra. A tela **nunca** aplica em silêncio: após o upload, mostra
 
-- **Contadores**: inseridos · atualizados · ignorados.
+- **Contadores por aba**:
+  - **Fornecedores** (cadastro acumulativo): `inseridos · atualizados`.
+  - **Contratos** (ciclo de vida): `inseridos · atualizados · reativados · desativados`.
 - **Tabela de erros** (quando houver): `aba · linha · campo · motivo` — ex.: `Contratos · 7 · cnpj · deve ter 14 dígitos`.
 - **Regra tudo-ou-nada**: havendo **qualquer** erro, **nada** é gravado; a pessoa corrige a lista
   inteira e reenvia. Só com zero erros o botão **Confirmar carga** aplica.
@@ -60,16 +62,25 @@ Tela (React)  →  ImportarCadastro (caso de uso)  →  porta CargaDeCadastro
 ### 3.1 Porta
 ```ts
 // src/application/ports/CargaDeCadastro.ts
-export interface RelatorioDeImportacao {
+export interface ResumoAba {
   readonly inseridos: number;
   readonly atualizados: number;
+  readonly reativados?: number;   // exclusivo de Contratos
+  readonly desativados?: number;  // exclusivo de Contratos
+}
+
+export interface RelatorioDeImportacao {
+  readonly fornecedores: ResumoAba;
+  readonly contratos: ResumoAba;
   readonly ignorados: number;
   readonly erros: ReadonlyArray<{ aba: string; linha: number; campo: string; motivo: string }>;
 }
+
 export interface CargaDeCadastro {
-  importar(arquivo: File): Promise<RelatorioDeImportacao>;
-  baixarModelo(): Promise<Blob>;
-  exportarBaseAtual(): Promise<Blob>;
+  previsualizar(arquivo: File): Promise<RelatorioDeImportacao>;
+  aplicar(arquivo: File): Promise<RelatorioDeImportacao>;
+  baixarModelo(): void;
+  exportarBaseAtual(): void;
 }
 ```
 
@@ -77,21 +88,35 @@ export interface CargaDeCadastro {
 
 O projeto **já tem a lib `xlsx`** (é a que o `ExportadorXlsx` usa). O parse acontece **no cliente**,
 valida com os **mesmos Value Objects** do domínio (`Cnpj`, `Email`, `DataHora`) e,
-se limpo, grava nos repositórios mock (`FornecedorRepositoryEmMemoria`, `ContratoRepositoryEmMemoria`,
-`localStorage`). Assim a carga é **usável na demo**, antes de qualquer endpoint.
+se limpo, executa o **merge inteligente** no armazenamento persistido (`BaseDeCadastroStore` / `localStorage`).
 
 ```ts
-// src/infrastructure/mock/CargaMock.ts (esboço)
-export class CargaMock implements CargaDeCadastro {
-  async importar(arquivo: File): Promise<RelatorioDeImportacao> {
-    const abas = lerXlsx(await arquivo.arrayBuffer());     // xlsx (client-side)
-    const { validos, erros } = validarComVOs(abas);        // reusa Cnpj/Email/DataHora...
-    if (erros.length === 0) this.repos.substituirPor(validos);
-    return montarRelatorio(validos, erros);
+// src/infrastructure/mock/cadastro/CargaDeCadastroMock.ts
+export class CargaDeCadastroMock implements CargaDeCadastro {
+  async aplicar(arquivo: File): Promise<RelatorioDeImportacao> {
+    const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
+    const relatorio = this.montarRelatorio(base, erros);
+    if (erros.length === 0) {
+      this.store.fundir(base); // merge por chave natural (upsert + soft delete nos contratos ausentes)
+      this.ocorrenciaRepo?.limparAutomaticos();
+    }
+    return relatorio;
   }
-  // baixarModelo / exportarBaseAtual: gerados client-side com a MESMA lib xlsx
 }
 ```
+
+### 3.4 Regra de merge da importação (Frontend & Backend)
+
+1. **Aba Fornecedores (Acumulativa):**
+   - Para cada fornecedor na planilha: se `codEmpresa` existe na base → **atualiza** dados cadastrais (`atualizados++`); se não existe → **insere** (`inseridos++`).
+   - Fornecedores ausentes na planilha **NUNCA são deletados**.
+
+2. **Aba Contratos (Soft Delete):**
+   - Para cada contrato na planilha:
+     - Se `(codEmpresa, codContrato)` existe e está ativo (`isDeletedAt === null`) → **atualiza** (`atualizados++`).
+     - Se `(codEmpresa, codContrato)` existe e está soft-deleted (`isDeletedAt !== null`) → **reativa** limpando a data de remoção (`reativados++`).
+     - Se não existe → **insere** (`inseridos++`).
+   - Para cada contrato ativo na base que **NÃO consta** na planilha enviada → executa **soft delete** registrando a data/timestamp atual em `isDeletedAt` (`desativados++`).
 
 > O `validarComVOs` do front espelha o `LeitorDePlanilha` + contrato do back (`19` §6.4). Mesma planilha,
 > mesmas colunas, mesmas regras — por design, não por coincidência.

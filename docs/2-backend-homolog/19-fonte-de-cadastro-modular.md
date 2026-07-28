@@ -415,15 +415,13 @@ FonteDeCadastro.obter()  →  LeitorDeCadastro.ler()  →  LoteDeCadastro (domí
 
 Regras da ingestão (herdadas de `06` §9 / `12`):
 1. **E-mail normalizado** (`trim`+`lower`) na escrita; único no cadastro (A-14).
-2. **Upsert idempotente** — reprocessar o mesmo lote não duplica; some quem sumiu da fonte
-   (soft-delete `is_delete`, nunca `DELETE` físico).
-3. **Status do contrato** derivado automaticamente da vigência (`dataInicio`/`dataFim`) — não há
-   encerramento manual. Contrato Ativo = hoje dentro de `[dataInicio, dataFim]`.
+2. **Upsert inteligente de cadastro:**
+   - **Aba Fornecedores (acumulativa):** upsert de dados cadastrais. **NUNCA realiza DELETE** (fornecedores ausentes permanecem no cadastro).
+   - **Aba Contratos (ciclo de vida):** upsert de contratos. Contratos ausentes da nova carga recebem **soft delete (`is_delete = <timestamp>`)**. Contratos previamente soft-deleted que constem na nova carga são **reativados (`is_delete = NULL`)**.
+3. **Status de atividade do PJ** derivado automaticamente da existência de pelo menos 1 contrato não-deletado em vigência (`[dataInicio, dataFim]`).
 4. **Transação** por lote; falha de validação **aborta o lote** (não grava meia-sincronização).
 
-> DDL: a tabela `APP.TB_GER_NF_PJ_FORNECEDOR` de `12` §2.1 já serve. Contratos precisam da sua própria
-> tabela com `data_inicio`, `data_fim`, `empresa_vinculada_codigo/nome`
-> — DDL proposta no checklist §13.
+> DDL: a tabela `APP.TB_GER_NF_PJ_FORNECEDOR` (acumulativa) e `APP.TB_GER_NF_PJ_CONTRATO` (com `is_delete` e índice único filtrado em `cod_empresa + cod_contrato WHERE is_delete IS NULL`) estão especificadas em `12` §2.
 
 ### 8.1 Carga manual pelo usuário — upload/download (Opção A)
 
@@ -433,14 +431,14 @@ não existe). O backend expõe três rotas; a tela é desenhada em
 
 | Método | Rota | O que faz |
 |---|---|---|
-| **POST** | `/v2/cadastro/importar` | Recebe o `.xlsx` (multipart), valida, faz upsert, devolve **relatório** |
+| **POST** | `/v2/cadastro/importar` | Recebe o `.xlsx` (multipart), valida, faz upsert/soft delete, devolve **relatório** |
 | GET | `/v2/cadastro/template` | Baixa a **planilha-modelo** vazia (cabeçalhos das 2 abas) |
 | GET | `/v2/cadastro/exportar` | Baixa a **base atual** em `.xlsx` (editar em ciclo / auditoria) |
 
 **Fluxo do import** (reusa tudo de §5/§8, só muda a origem dos bytes):
 ```
 UploadFile → LeitorDePlanilha.ler(bytes) → PayloadDeCadastro.model_validate (linha-a-linha)
-           → SincronizarCadastroUseCase (upsert idempotente, 1 transação) → RelatorioDeImportacao
+           → SincronizarCadastroUseCase (upsert + soft delete nos contratos, 1 transação) → RelatorioDeImportacao
 ```
 
 ```python
@@ -455,7 +453,9 @@ async def importar(arquivo: UploadFile = File(...), _=Depends(verify_integration
 ```json
 { "statusCode": 200, "version": "v2", "accessed_by": "nf-pjs-dashboard",
   "data": {
-    "inseridos": 12, "atualizados": 3, "ignorados": 0,
+    "fornecedores": { "inseridos": 12, "atualizados": 3 },
+    "contratos": { "inseridos": 10, "atualizados": 2, "reativados": 1, "desativados": 2 },
+    "ignorados": 0,
     "erros": [ { "aba": "Contratos", "linha": 7, "campo": "cnpj", "motivo": "deve ter 14 dígitos" } ]
   } }
 ```
