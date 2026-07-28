@@ -14,8 +14,8 @@ export const RelatorioDaCarga: React.FC<RelatorioDaCargaProps> = ({ relatorio, a
   return (
     <div className={styles.relatorio} id="relatorio-carga">
       <div className={styles.contadores}>
-        <span className={styles.chip}><b>{relatorio.inseridos}</b> inseridos</span>
-        <span className={styles.chip}><b>{relatorio.atualizados}</b> atualizados</span>
+        <span className={styles.chip}>Fornecedores: <b>{relatorio.fornecedores.inseridos}</b> inseridos, <b>{relatorio.fornecedores.atualizados}</b> atualizados</span>
+        <span className={styles.chip}>Contratos: <b>{relatorio.contratos.inseridos}</b> inseridos, <b>{relatorio.contratos.atualizados}</b> atualizados, <b>{relatorio.contratos.reativados ?? 0}</b> reativados, <b>{relatorio.contratos.desativados ?? 0}</b> desativados</span>
         <span className={styles.chip}><b>{relatorio.erros.length}</b> erros</span>
       </div>
 

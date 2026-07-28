@@ -26,11 +26,11 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
 
   async aplicar(arquivo: File): Promise<RelatorioDeImportacao> {
     const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
-    const relatorio = this.montarRelatorio(base, erros); // contagem ANTES de substituir
-    if (erros.length === 0) {
-      this.store.substituir(base);
-      this.ocorrenciaRepo?.limparAutomaticos();
+    if (erros.length > 0) {
+      return this.montarRelatorio(base, erros);
     }
+    const relatorio = this.store.fundir(base);
+    this.ocorrenciaRepo?.limparAutomaticos();
     return relatorio;
   }
 
@@ -46,27 +46,47 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
     base: BaseDeCadastro,
     erros: readonly ErroDeImportacao[]
   ): RelatorioDeImportacao {
-    const atuais = this.chavesAtuais();
-    const novas = this.chavesDe(base);
+    // 1. Simulação Fornecedores
+    const fornecedoresAtuais = new Set(this.store.fornecedores().map((f) => f.codEmpresa));
+    let fornecedoresInseridos = 0;
+    let fornecedoresAtualizados = 0;
+
+    base.fornecedores.forEach((f) => {
+      if (fornecedoresAtuais.has(f.codEmpresa)) fornecedoresAtualizados++;
+      else fornecedoresInseridos++;
+    });
+
+    // 2. Simulação Contratos
+    const contratosAtuaisMap = new Map(this.store.contratos().map((c) => [c.identificador(), c]));
+    const chavesNovosContratos = new Set(base.contratos.map((c) => c.identificador()));
+    let contratosInseridos = 0;
+    let contratosAtualizados = 0;
+    let contratosReativados = 0;
+    let contratosDesativados = 0;
+
+    base.contratos.forEach((c) => {
+      const existente = contratosAtuaisMap.get(c.identificador());
+      if (!existente) contratosInseridos++;
+      else if (existente.ehDeletado) contratosReativados++;
+      else contratosAtualizados++;
+    });
+
+    this.store.contratos().forEach((c) => {
+      if (!c.ehDeletado && !chavesNovosContratos.has(c.identificador())) {
+        contratosDesativados++;
+      }
+    });
+
     return {
-      inseridos: novas.filter((chave) => !atuais.has(chave)).length,
-      atualizados: novas.filter((chave) => atuais.has(chave)).length,
+      fornecedores: { inseridos: fornecedoresInseridos, atualizados: fornecedoresAtualizados },
+      contratos: {
+        inseridos: contratosInseridos,
+        atualizados: contratosAtualizados,
+        reativados: contratosReativados,
+        desativados: contratosDesativados
+      },
       ignorados: 0,
       erros
     };
-  }
-
-  private chavesAtuais(): Set<string> {
-    return new Set(this.chavesDe({
-      fornecedores: this.store.fornecedores(),
-      contratos: this.store.contratos()
-    }));
-  }
-
-  private chavesDe(base: BaseDeCadastro): string[] {
-    return [
-      ...base.fornecedores.map((item) => `F:${item.codEmpresa}`),
-      ...base.contratos.map((item) => `C:${item.identificador()}`)
-    ];
   }
 }

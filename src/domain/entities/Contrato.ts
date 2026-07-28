@@ -9,6 +9,7 @@ export interface PropsContrato {
   readonly valorMensal: number;
   readonly empresaResponsavel: string;
   readonly nomeEmpresaResponsavel: string;
+  readonly isDeletedAt?: string | null;
 }
 
 export class Contrato {
@@ -22,6 +23,8 @@ export class Contrato {
   get valorMensal(): number { return this.props.valorMensal; }
   get empresaResponsavel(): string { return this.props.empresaResponsavel; }
   get nomeEmpresaResponsavel(): string { return this.props.nomeEmpresaResponsavel; }
+  get isDeletedAt(): string | null { return this.props.isDeletedAt ?? null; }
+  get ehDeletado(): boolean { return this.props.isDeletedAt !== null && this.props.isDeletedAt !== undefined; }
 
   ehDoFornecedor(codEmpresa: string): boolean {
     return this.props.codEmpresa === codEmpresa;
@@ -45,15 +48,17 @@ export class Contrato {
 
   /**
    * Status derivado da VIGÊNCIA: um PJ nunca presta serviço a duas empresas ao
-   * mesmo tempo — rescinde e gera novo contrato. Ativo = hoje dentro de [início, fim].
+   * mesmo tempo — rescinde e gera novo contrato. Ativo = hoje dentro de [início, fim] e NÃO deletado.
    */
   estaVigente(hoje: Date): boolean {
+    if (this.ehDeletado) return false;
     const inicio = this.props.dataInicio.paraDataLocal().getTime();
     const fim = this.props.dataFim.paraDataLocal().getTime();
     return hoje.getTime() >= inicio && hoje.getTime() <= fim;
   }
 
   statusParaExibicao(hoje: Date): string {
+    if (this.ehDeletado) return 'Deletado';
     return this.estaVigente(hoje) ? 'Ativo' : 'Inativo';
   }
 }

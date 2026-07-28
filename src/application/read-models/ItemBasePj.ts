@@ -32,11 +32,12 @@ export class ItemBasePj {
   }
 
   get ativo(): boolean {
-    return this.fornecedor.ativo;
+    const hoje = new Date();
+    return this.contratos.some((contrato) => contrato.estaVigente(hoje));
   }
 
   get statusTexto(): string {
-    return this.fornecedor.statusParaExibicao();
+    return this.ativo ? 'Ativo' : 'Inativo';
   }
 
   get totalContratos(): number {

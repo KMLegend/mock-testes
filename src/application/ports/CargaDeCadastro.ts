@@ -5,9 +5,16 @@ export interface ErroDeImportacao {
   readonly motivo: string;
 }
 
-export interface RelatorioDeImportacao {
+export interface ResumoAba {
   readonly inseridos: number;
   readonly atualizados: number;
+  readonly reativados?: number;
+  readonly desativados?: number;
+}
+
+export interface RelatorioDeImportacao {
+  readonly fornecedores: ResumoAba;
+  readonly contratos: ResumoAba;
   readonly ignorados: number;
   readonly erros: readonly ErroDeImportacao[];
 }

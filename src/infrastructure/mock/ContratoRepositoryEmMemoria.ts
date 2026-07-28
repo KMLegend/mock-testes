@@ -7,6 +7,6 @@ export class ContratoRepositoryEmMemoria implements ContratoRepository {
   constructor(private readonly store: BaseDeCadastroStore) {}
 
   async todos(): Promise<Contrato[]> {
-    return this.store.contratos();
+    return this.store.contratos().filter((c) => !c.ehDeletado);
   }
 }

@@ -24,6 +24,7 @@ export interface ContratoSerializado {
   valorMensal: number;
   empresaResponsavel: string;
   nomeEmpresaResponsavel: string;
+  isDeletedAt?: string | null;
 }
 
 export function serializarFornecedor(fornecedor: Fornecedor): FornecedorSerializado {
@@ -61,7 +62,8 @@ export function serializarContrato(contrato: Contrato): ContratoSerializado {
     dataFim: contrato.dataFim.raw(),
     valorMensal: contrato.valorMensal,
     empresaResponsavel: contrato.empresaResponsavel,
-    nomeEmpresaResponsavel: contrato.nomeEmpresaResponsavel
+    nomeEmpresaResponsavel: contrato.nomeEmpresaResponsavel,
+    isDeletedAt: contrato.isDeletedAt
   };
 }
 
@@ -74,6 +76,7 @@ export function reconstruirContrato(dado: ContratoSerializado): Contrato {
     dataFim: DataHora.de(dado.dataFim),
     valorMensal: dado.valorMensal,
     empresaResponsavel: dado.empresaResponsavel,
-    nomeEmpresaResponsavel: dado.nomeEmpresaResponsavel
+    nomeEmpresaResponsavel: dado.nomeEmpresaResponsavel,
+    ...(dado.isDeletedAt === undefined || dado.isDeletedAt === null ? {} : { isDeletedAt: dado.isDeletedAt })
   });
 }

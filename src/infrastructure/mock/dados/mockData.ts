@@ -205,14 +205,14 @@ export const mockContratosData: Contrato[] = [
     empresaResponsavel: '002',
     nomeEmpresaResponsavel: 'SPE RESIDENCIAL PRAÇA DO SOL EMPREENDIMENTOS LTDA'
   }),
-  // PJ inativo no cadastro: a grade mostra o contrato com o ícone de status e
+  // PJ inativo no cadastro (contrato com vigência expirada): a grade mostra o contrato com o ícone de status e
   // bloqueia lançamentos, mas o histórico continua consultável.
   new Contrato({
     codEmpresa: '017',
     codContrato: 'CONTRATO-017-A',
     nomeContrato: 'CONTRATO ENCERRADO - APOIO',
     dataInicio: DataHora.de('2022-05-10'),
-    dataFim: DataHora.de('2026-12-31'),
+    dataFim: DataHora.de('2024-12-31'),
     valorMensal: 3000,
     empresaResponsavel: '002',
     nomeEmpresaResponsavel: 'SPE RESIDENCIAL PRAÇA DO SOL EMPREENDIMENTOS LTDA'
