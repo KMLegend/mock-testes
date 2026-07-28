@@ -25,17 +25,35 @@ export class MotorDeCreditoMensal {
     contrato: Contrato,
     extratoExistente: ExtratoDeRecesso
   ): readonly OcorrenciaDeRecesso[] {
+    const limpo = this.sanitizarExtratoParaContratoVigente(contrato, extratoExistente);
+
     const mensalidades = this.competenciasVencidas(contrato)
-      .filter((competencia) => !extratoExistente.temCreditoAutomaticoDe(competencia))
+      .filter((competencia) => !limpo.temCreditoAutomaticoDe(competencia))
       .map((competencia) => this.criarCredito(contrato, competencia));
 
     const encerramentos = this.gerarEncerramentoSeVigenciaExpirou(
       contrato,
-      extratoExistente,
+      limpo,
       mensalidades
     );
 
     return [...mensalidades, ...encerramentos];
+  }
+
+  /** Se o contrato está vigente, remove qualquer lançamento de encerramento gravado anteriormente. */
+  private sanitizarExtratoParaContratoVigente(
+    contrato: Contrato,
+    extratoExistente: ExtratoDeRecesso
+  ): ExtratoDeRecesso {
+    const fimDaVigencia = contrato.dataFim.paraDataLocal();
+    if (this.agora().getTime() < fimDaVigencia.getTime()) {
+      const semEncerramentos = extratoExistente.paraArray().filter((ocorrencia) => (
+        ocorrencia.id !== `auto-rescisao-${contrato.identificador()}` &&
+        ocorrencia.id !== `auto-zeramento-${contrato.identificador()}`
+      ));
+      return new ExtratoDeRecesso(semEncerramentos);
+    }
+    return extratoExistente;
   }
 
   /** Aniversários mensais já completados a partir de 2025, dentro da vigência e até hoje. */

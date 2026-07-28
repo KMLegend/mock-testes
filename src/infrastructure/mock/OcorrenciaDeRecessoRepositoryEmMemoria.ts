@@ -6,9 +6,8 @@ import { OrigemDaOcorrencia } from '../../domain/value-objects/OrigemDaOcorrenci
 import { QuantidadeDeDias } from '../../domain/value-objects/QuantidadeDeDias';
 import { TipoOcorrencia } from '../../domain/value-objects/TipoOcorrencia';
 
-// v4: início dos créditos ajustado para considerar a partir de 2025 — atualiza a chave
-// para descartar lançamentos armazenados sob o modelo anterior.
-const CHAVE_ARMAZENAMENTO = 'nf-pjs:recesso:ocorrencias:v4';
+// v5: encerramentos/rescisões automáticas são vinculados estritamente à vigência real do contrato
+const CHAVE_ARMAZENAMENTO = 'nf-pjs:recesso:ocorrencias:v5';
 
 interface OcorrenciaSerializada {
   id: string;
@@ -86,10 +85,11 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
 
   private carregar(): OcorrenciaDeRecesso[] {
     if (typeof localStorage === 'undefined') return [];
-    // Limpeza defensiva das chaves antigas (v1, v2 e v3)
+    // Limpeza defensiva das chaves antigas (v1, v2, v3, v4)
     localStorage.removeItem('nf-pjs:recesso:ocorrencias:v1');
     localStorage.removeItem('nf-pjs:recesso:ocorrencias:v2');
     localStorage.removeItem('nf-pjs:recesso:ocorrencias:v3');
+    localStorage.removeItem('nf-pjs:recesso:ocorrencias:v4');
 
     const bruto = localStorage.getItem(CHAVE_ARMAZENAMENTO);
     if (!bruto) return [];

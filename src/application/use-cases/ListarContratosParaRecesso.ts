@@ -54,12 +54,24 @@ export class ListarContratosParaRecesso {
     const fornecedor = porCodEmpresa.get(contrato.codEmpresa);
     if (!fornecedor) return [];
 
+    const hoje = (this.deps.agora ?? (() => new Date()))();
+    let extratoDoContrato = geral.doContrato(contrato.identificador());
+
+    // Se o contrato está vigente, remove qualquer rescisão/zeramento automático legado do extrato
+    if (contrato.estaVigente(hoje)) {
+      const semEncerramentos = extratoDoContrato.paraArray().filter((o) => (
+        o.id !== `auto-rescisao-${contrato.identificador()}` &&
+        o.id !== `auto-zeramento-${contrato.identificador()}`
+      ));
+      extratoDoContrato = new ExtratoDeRecesso(semEncerramentos);
+    }
+
     return [
       new LinhaDeRecesso({
         contrato,
         fornecedor,
-        extrato: geral.doContrato(contrato.identificador()),
-        hoje: (this.deps.agora ?? (() => new Date()))()
+        extrato: extratoDoContrato,
+        hoje
       })
     ];
   }
