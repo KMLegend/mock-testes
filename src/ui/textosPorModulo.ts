@@ -15,11 +15,11 @@ export const TEXTOS_POR_MODULO = {
   recesso: {
     titulo: 'Gestão de Recesso',
     subtitulo:
-      'Saldo de recesso por contrato, acumulado mensalmente conforme a proporção de cada um.',
+      'Saldo de recesso por contrato, acumulado mensalmente (2,5 dias por mês de vigência).',
     placeholderBusca:
       'Buscar por Razão Social, Nome Fantasia, Responsável Legal, CNPJ, Nº do contrato ou empresa vinculada...',
     opcoesStatus: STATUS_RECESSO,
-    // Contratos encerrados e PJs inativos ficam fora da visão do dia a dia.
+    // Contratos fora da vigência e PJs inativos ficam fora da visão do dia a dia.
     statusPadrao: 'Ativo'
   },
   cadastro: {

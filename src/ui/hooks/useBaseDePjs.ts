@@ -17,12 +17,16 @@ export interface ControleBaseDePjs {
   readonly recarregar: () => void;
 }
 
-export function useBaseDePjs(versaoCarga?: number | string): ControleBaseDePjs {
+interface CargaDaBase {
+  readonly itens: readonly ItemBasePj[];
+  readonly carregando: boolean;
+  readonly recarregar: () => Promise<void>;
+}
+
+function useItensDaBase(versaoCarga?: number | string): CargaDaBase {
   const { fornecedorRepo, contratoRepo } = useDependencias();
   const [itens, setItens] = useState<readonly ItemBasePj[]>([]);
   const [carregando, setCarregando] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<FiltroStatusPj>('Todos');
 
   const recarregar = useCallback(async (): Promise<void> => {
     setCarregando(true);
@@ -31,44 +35,36 @@ export function useBaseDePjs(versaoCarga?: number | string): ControleBaseDePjs {
         fornecedorRepo.todos(),
         contratoRepo.todos()
       ]);
-
-      const lista = fornecedores.map((fornecedor) => {
-        const contratosDoPj = contratos.filter((c) => c.ehDoFornecedor(fornecedor.codEmpresa));
-        return new ItemBasePj(fornecedor, contratosDoPj);
-      });
-
-      setItens(lista);
+      setItens(fornecedores.map((fornecedor) =>
+        new ItemBasePj(fornecedor, contratos.filter((c) => c.ehDoFornecedor(fornecedor.codEmpresa)))
+      ));
     } finally {
       setCarregando(false);
     }
   }, [fornecedorRepo, contratoRepo]);
 
-  useEffect(() => {
-    void recarregar();
-  }, [recarregar, versaoCarga]);
+  useEffect(() => { void recarregar(); }, [recarregar, versaoCarga]);
 
-  const totalAtivos = useMemo(
-    () => itens.filter((item) => item.ativo).length,
-    [itens]
+  return { itens, carregando, recarregar };
+}
+
+function atendeStatus(item: ItemBasePj, statusFilter: FiltroStatusPj): boolean {
+  if (statusFilter === 'Todos') return true;
+  return statusFilter === 'Ativo' ? item.ativo : !item.ativo;
+}
+
+export function useBaseDePjs(versaoCarga?: number | string): ControleBaseDePjs {
+  const { itens, carregando, recarregar } = useItensDaBase(versaoCarga);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<FiltroStatusPj>('Todos');
+
+  const totalAtivos = useMemo(() => itens.filter((item) => item.ativo).length, [itens]);
+  const totalInativos = useMemo(() => itens.filter((item) => !item.ativo).length, [itens]);
+
+  const itensFiltrados = useMemo(
+    () => itens.filter((item) => atendeStatus(item, statusFilter) && item.correspondeA(searchQuery)),
+    [itens, searchQuery, statusFilter]
   );
-
-  const totalInativos = useMemo(
-    () => itens.filter((item) => !item.ativo).length,
-    [itens]
-  );
-
-  const itensFiltrados = useMemo(() => {
-    return itens.filter((item) => {
-      const atendeStatus =
-        statusFilter === 'Todos' ||
-        (statusFilter === 'Ativo' && item.ativo) ||
-        (statusFilter === 'Inativo' && !item.ativo);
-
-      const atendeBusca = item.correspondeA(searchQuery);
-
-      return atendeStatus && atendeBusca;
-    });
-  }, [itens, searchQuery, statusFilter]);
 
   return useMemo(
     () => ({

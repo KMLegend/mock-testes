@@ -52,25 +52,6 @@ export class ExtratoDeRecesso {
     return this.ocorrencias.some((ocorrencia) => ocorrencia.ehCreditoAutomaticoDe(competencia));
   }
 
-  /**
-   * Data do último cálculo automático — o MAX da coluna (docs/modulo-recesso/02).
-   * É a referência da regra dos 15 dias na rescisão.
-   */
-  dataDoUltimoCalculo(): Date | null {
-    const automaticas = this.ocorrencias.filter((ocorrencia) => ocorrencia.ehAutomatica());
-    if (automaticas.length === 0) return null;
-    return automaticas.reduce(
-      (maior, ocorrencia) => (ocorrencia.dataDoCalculo > maior ? ocorrencia.dataDoCalculo : maior),
-      automaticas[0]!.dataDoCalculo
-    );
-  }
-
-  /** Data da rescisão, se o contrato já foi encerrado. */
-  dataDoEncerramento(): Date | null {
-    const encerramento = this.ocorrencias.find((ocorrencia) => ocorrencia.encerraContrato());
-    return encerramento ? encerramento.dataDoCalculo : null;
-  }
-
   suportaDebito(tipo: TipoOcorrencia, quantidade: QuantidadeDeDias): boolean {
     return this.saldoAtual().suporta(tipo, quantidade);
   }

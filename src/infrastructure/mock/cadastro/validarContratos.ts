@@ -1,10 +1,8 @@
 import { Contrato } from '../../../domain/entities/Contrato';
 import { DataHora } from '../../../domain/value-objects/DataHora';
-import { ProporcaoDeRecesso } from '../../../domain/value-objects/ProporcaoDeRecesso';
 import { ErroDeImportacao } from '../../../application/ports/CargaDeCadastro';
 import { LinhaBruta, ABA_CONTRATOS } from './lerPlanilha';
 import { ehDataIso, numeroOuNulo } from './validadores';
-import { validarProporcoes } from './validarProporcoes';
 
 export interface ResultadoContratos {
   readonly validos: readonly Contrato[];
@@ -15,11 +13,6 @@ type Valores = Record<string, string>;
 
 function texto(valores: Valores, chave: string): string {
   return valores[chave] ?? '';
-}
-
-function proporcaoInvalida(prop: number | null | undefined): boolean {
-  if (prop === null) return true;
-  return typeof prop === 'number' && (prop <= 0 || prop > 100);
 }
 
 function checagens(valores: Valores, cods: ReadonlySet<string>) {
@@ -33,14 +26,12 @@ function checagens(valores: Valores, cods: ReadonlySet<string>) {
     { campo: 'data_fim', invalido: !ehDataIso(texto(valores, 'data_fim')), motivo: 'data inválida (AAAA-MM-DD)' },
     { campo: 'empresa_vinculada_codigo', invalido: texto(valores, 'empresa_vinculada_codigo') === '', motivo: 'obrigatório' },
     { campo: 'empresa_vinculada_nome', invalido: texto(valores, 'empresa_vinculada_nome') === '', motivo: 'obrigatório' },
-    { campo: 'valor_mensal', invalido: valor === null, motivo: 'número inválido' },
-    { campo: 'proporcao_de_recesso', invalido: proporcaoInvalida(numeroOuNulo(texto(valores, 'proporcao_de_recesso'))), motivo: 'deve ser > 0 e ≤ 100' }
+    { campo: 'valor_mensal', invalido: valor === null, motivo: 'número inválido' }
   ];
 }
 
 function construir(valores: Valores): Contrato {
   const valor = numeroOuNulo(texto(valores, 'valor_mensal'));
-  const prop = numeroOuNulo(texto(valores, 'proporcao_de_recesso'));
   return new Contrato({
     codEmpresa: texto(valores, 'cod_empresa'),
     codContrato: texto(valores, 'cod_contrato'),
@@ -49,8 +40,7 @@ function construir(valores: Valores): Contrato {
     dataFim: DataHora.de(texto(valores, 'data_fim')),
     valorMensal: typeof valor === 'number' ? valor : 0,
     empresaResponsavel: texto(valores, 'empresa_vinculada_codigo'),
-    nomeEmpresaResponsavel: texto(valores, 'empresa_vinculada_nome'),
-    ...(typeof prop === 'number' ? { proporcaoDeRecesso: ProporcaoDeRecesso.de(prop) } : {})
+    nomeEmpresaResponsavel: texto(valores, 'empresa_vinculada_nome')
   });
 }
 
@@ -66,6 +56,6 @@ export function validarContratos(linhas: readonly LinhaBruta[], cods: ReadonlySe
   const avaliadas = linhas.map((linha) => avaliar(linha, cods));
   return {
     validos: avaliadas.flatMap((item) => (item.contrato ? [item.contrato] : [])),
-    erros: [...avaliadas.flatMap((item) => item.erros), ...validarProporcoes(linhas)]
+    erros: avaliadas.flatMap((item) => item.erros)
   };
 }

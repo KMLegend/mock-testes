@@ -1,7 +1,7 @@
 ---
 titulo: Módulo Recesso — Regras de Negócio (Saldo e Acúmulo Mensal)
 dominio: recesso
-tags: [regras, saldo, credito-mensal, competencia, proporcao, rescisao, idempotencia, normativo]
+tags: [regras, saldo, credito-mensal, competencia, rescisao, idempotencia, normativo]
 status: normativo
 ---
 
@@ -18,34 +18,35 @@ status: normativo
 
 ## 1. Unidade de controle: o CONTRATO
 
-O saldo de recesso é mantido **por contrato**, não por PJ. Um PJ lotado em dois contratos
-tem **dois extratos e dois saldos**, e aparece em **duas linhas** da grade.
+O saldo de recesso é mantido **por contrato**, não por PJ.
 
-### 1.1 Proporção
+> **Regra de negócio:** um fornecedor PJ **nunca** presta serviço a duas empresas ao mesmo
+> tempo — ao mudar de empresa, **rescinde** o contrato anterior e **gera** um novo. Portanto,
+> cada PJ tem no máximo **um contrato ativo** por vez, e o direito de recesso é **sempre
+> 100%** daquele contrato.
 
-Cada contrato carrega uma **proporção** — o percentual do direito da pessoa que cabe àquele
-contrato. As proporções dos contratos de um mesmo PJ devem somar **100%**.
+### 1.1 Status do contrato (derivado da vigência)
 
-```
-PJ 015 → contrato 101: 40%
-       → contrato 102: 60%
-```
+O status de um contrato é **derivado automaticamente** da vigência (`dataInicio` / `dataFim`):
 
-Isso mantém o direito da **pessoa** em 2,5 dias/mês; o que muda é como ele é repartido.
-Sem proporção declarada, o contrato vale **100%** (caso do PJ com contrato único).
+| Condição | Status |
+|---|---|
+| Hoje está dentro de `[dataInicio, dataFim]` | **Ativo** |
+| Hoje está fora de `[dataInicio, dataFim]` | **Inativo** |
 
-> **Invariante de cadastro:** Σ(proporções dos contratos ativos de um PJ) = 100%.
-> A Fase 2 deve validar isso na origem (HCM/DB City) — a Fase 1 confia no dado.
+> **Não existe encerramento manual.** O contrato torna-se inativo automaticamente quando
+> `dataFim` é ultrapassada. O acúmulo de recesso para naturalmente nessa data (§2.3).
 
 ## 2. Acúmulo mensal
 
 A cada **aniversário mensal da data de início do contrato**, o sistema credita:
 
 ```
-crédito do mês = 2,5 dias × proporção do contrato
+crédito do mês = 2,5 dias
 ```
 
 - **Dia base** = dia da `Contrato.dataInicio`. Contrato iniciado em 15/03 credita todo dia 15.
+- **Marco inicial de crédito**: Os créditos mensais de recesso passam a ser acumulados a partir do ano de **2025**. Para contratos iniciados antes de 2025 (ex.: `15/03/2023`), o acúmulo inicia no mesmo dia/mês em 2025 (`15/03/2025`).
 - **O primeiro crédito nasce um mês DEPOIS do início** — mês incompleto não gera direito.
 - 2,5 × 12 = 30 dias/ano, equivalente ao modelo anual anterior.
 
@@ -106,30 +107,36 @@ longo de dezenas de meses e o saldo deixa de fechar.
 > **Regra:** guardar em **centésimos de dia (inteiro)** e converter só na exibição.
 > Na Fase 2, usar `DECIMAL(10,2)` — nunca `FLOAT`.
 
-### 3.5 Exemplo (contrato 40%, início 29/02/2024)
+### 3.5 Exemplo (contrato iniciado em 29/02/2024, fim da vigência 31/10/2025)
 | # | Cálculo | Competência | Descrição | Tipo | Qtd | Saldo |
 |---|---|---|---|---|---|---|
-| 1 | 29/03/2024 | 29/03/2024 | Crédito mensal (40% do direito) | Crédito | 1 | **1** |
+| 1 | 28/02/2025 | 28/02/2025 | Crédito mensal de recesso | Crédito | 2,5 | **2,5** |
 | … | … | … | … | … | … | … |
-| 28 | 29/06/2026 | 29/06/2026 | Crédito mensal (40% do direito) | Crédito | 1 | **28** |
-| 29 | 22/07/2026 | 22/07/2026 | Rescisão contratual (+1 crédito) — 23 dia(s) | Crédito | 1 | **29** |
-| 30 | 22/07/2026 | 22/07/2026 | Encerramento de contrato (zera o saldo atual) | Débito | 29 | **0** |
+| 8 | 29/09/2025 | 29/09/2025 | Crédito mensal de recesso | Crédito | 2,5 | **20** |
+| 9 | 31/10/2025 | 31/10/2025 | Rescisão contratual (+2,5 crédito) — 32 dia(s) | Crédito | 2,5 | **22,5** |
+| 10 | 31/10/2025 | 31/10/2025 | Encerramento de contrato (zera o saldo atual) | Débito | 22,5 | **0** |
 
-## 4. Rescisão e encerramento
+## 4. Fim da vigência e rescisão
 
-O encerramento de contrato gera **dois lançamentos**, nesta ordem:
+O contrato torna-se **inativo automaticamente** quando a `dataFim` é ultrapassada (`dataFim <= hoje`).
+O acúmulo mensal para naturalmente nessa data (§2.3). Não há ação manual de encerramento.
+
+Quando a `dataFim` do contrato é atingida ou ultrapassada, o sistema executa **dois lançamentos automáticos na `dataFim`**, nesta ordem:
 
 **1. Rescisão contratual** — fecha o mês quebrado:
 ```
-dias = data da rescisão − última data de cálculo
-crédito = dias >= 15 ? (2,5 × proporção) : 0
+dias = data da rescisão (dataFim) − última data de cálculo
+crédito = dias >= 15 ? 2,5 : 0
 ```
 A linha é gravada **mesmo com crédito zero** — é ela que documenta que a regra foi aplicada.
-Descrição: `Rescisão contratual (+0 crédito)` ou `Rescisão contratual (+2,5 crédito)`.
+Descrição: `Rescisão contratual (+0 crédito) — X dia(s)` ou `Rescisão contratual (+2,5 crédito) — X dia(s)`.
 
-**2. Encerramento de contrato** — débito do saldo remanescente, **zerando** o saldo.
+**2. Encerramento de contrato** — débito do saldo acumulado remanescente, **zerando** o saldo final do contrato:
+```
+débito = saldo acumulado total após a rescisão
+```
 Descrição: `Encerramento de contrato (zera o saldo atual)`.
-É este lançamento que marca o contrato como encerrado.
+É este lançamento de débito que zera o saldo do contrato encerrado.
 
 Após o encerramento: o contrato **para de acumular**, **bloqueia** novos lançamentos e o
 histórico **permanece** visível.
@@ -143,7 +150,7 @@ histórico **permanece** visível.
 5. **Competência**: derivada da data e do dia base; o usuário **não digita**.
 6. **Lançado por** = usuário autenticado. **Nunca** aceitar do formulário — ver **R-04**.
 7. **Saldo negativo**: **R-05** (default: bloquear débito que deixe o saldo negativo).
-8. **Contrato encerrado**: bloqueia novos lançamentos.
+8. **Contrato fora da vigência**: bloqueia novos lançamentos.
 9. **Imutabilidade**: ocorrência lançada **não é editada nem excluída** — corrige-se por
    **estorno**. Ver **R-07**.
 
@@ -155,7 +162,6 @@ histórico **permanece** visível.
 - Toda ocorrência tem **autor** (usuário ou `SISTEMA`) e **data de criação**.
 - Quantidade é **> 0**, exceto a rescisão sem direito, que é **0**.
 - Reexecutar o motor **não altera** o saldo.
-- Σ(proporções dos contratos ativos de um PJ) = 100%.
 
 ## 7. Casos de borda
 
@@ -164,7 +170,7 @@ histórico **permanece** visível.
 | PJ **sem contrato** no HCM | Não aparece na grade (a linha é o contrato). |
 | Contrato com `dataInicio` **futura** | Nenhum mês completo → sem crédito. |
 | Contrato com **menos de um mês** | Saldo 0 até o primeiro aniversário mensal. |
-| Contrato **encerrado** (`dataFim` passada) | Para de acumular no fim da vigência. |
+| Contrato **inativo** (`dataFim` passada) | Para de acumular no fim da vigência. Status derivado automaticamente. |
 | PJ **inativo** no cadastro | Contrato aparece com ícone de status; novos lançamentos bloqueados; histórico visível. |
 | **29/02** como dia base | Cai em 28/02 nos anos não bissextos e **volta** para 29/02. |
 | Extrato **vazio** | Saldo atual = **0**; exibir estado vazio, não erro. |

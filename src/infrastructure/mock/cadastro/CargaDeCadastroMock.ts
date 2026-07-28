@@ -4,6 +4,7 @@ import {
   ErroDeImportacao
 } from '../../../application/ports/CargaDeCadastro';
 import { BaseDeCadastroStore, BaseDeCadastro } from './BaseDeCadastroStore';
+import { OcorrenciaDeRecessoRepositoryEmMemoria } from '../OcorrenciaDeRecessoRepositoryEmMemoria';
 import { lerAbas } from './lerPlanilha';
 import { validar } from './validarPlanilha';
 import { gerarModelo, exportarBase } from './gerarPlanilha';
@@ -13,7 +14,10 @@ import { gerarModelo, exportarBase } from './gerarPlanilha';
  * mesmos Value Objects do domínio → escrita no store persistido (docs/frontend/21).
  */
 export class CargaDeCadastroMock implements CargaDeCadastro {
-  constructor(private readonly store: BaseDeCadastroStore) {}
+  constructor(
+    private readonly store: BaseDeCadastroStore,
+    private readonly ocorrenciaRepo?: OcorrenciaDeRecessoRepositoryEmMemoria
+  ) {}
 
   async previsualizar(arquivo: File): Promise<RelatorioDeImportacao> {
     const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
@@ -23,7 +27,10 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
   async aplicar(arquivo: File): Promise<RelatorioDeImportacao> {
     const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
     const relatorio = this.montarRelatorio(base, erros); // contagem ANTES de substituir
-    if (erros.length === 0) this.store.substituir(base);
+    if (erros.length === 0) {
+      this.store.substituir(base);
+      this.ocorrenciaRepo?.limparAutomaticos();
+    }
     return relatorio;
   }
 

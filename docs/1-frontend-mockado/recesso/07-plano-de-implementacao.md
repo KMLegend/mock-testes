@@ -15,19 +15,19 @@ Mesma estratégia que deu certo na refatoração: **de dentro para fora**, domí
 
 | # | Etapa | Entregável | Pronto quando |
 |---|---|---|---|
-| 1 | **Value Objects** | `PeriodoAquisitivo`, `TipoOcorrencia`, `QuantidadeDeDias`, `SaldoDeDias`, `AutorDoLancamento`, `OrigemDaOcorrencia` | Testes unitários de §4.A |
+| 1 | **Value Objects** | `CompetenciaDeRecesso`, `TipoOcorrencia`, `QuantidadeDeDias`, `SaldoDeDias`, `AutorDoLancamento`, `OrigemDaOcorrencia` | Testes unitários de §4.A |
 | 2 | **Entidade + Coleção** | `OcorrenciaDeRecesso`, `ExtratoDeRecesso` | Saldo calculado **em um único lugar** |
-| 3 | **Motor de crédito automático** | `MotorDeCreditoAutomatico` | Testes de §4.B, **incluindo idempotência** |
+| 3 | **Motor de crédito automático** | `MotorDeCreditoMensal` | Testes de §4.B, **incluindo idempotência** |
 | 4 | **Ports + mock com escrita** | `OcorrenciaDeRecessoRepository` (com `salvar`), `UsuarioAtual` + adapters | Lançar e reler funciona; persiste (R-12) |
-| 5 | **Casos de uso** | `ObterExtratoDeRecesso`, `LancarOcorrenciaDeRecesso`, `ListarPjsParaRecesso` | Validações de `02` §4 aplicadas |
+| 5 | **Casos de uso** | `ListarContratosParaRecesso`, `LancarOcorrenciaDeRecesso`, `ExportarRecesso` | Validações de `02` §4 aplicadas |
 | 6 | **UI — HUD de módulos** | `HudDeModulos` + roteamento entre NF e Recesso | Alternar módulos sem perder estado indevidamente |
 | 7 | **UI — tabela + modal** | `TabelaDeRecesso`, `ModalRlt`, `SaldoAtual` | Checklist §3 |
 | 8 | **UI — formulário** | `FormularioDeOcorrencia` | Lançamento reflete no extrato e no saldo na hora |
 | 9 | **Backend (Fase 2)** | Tabela + endpoints de `05` | Checklist de `05` §6 |
 
-> Etapas 1–3 **não dependem** de decisão de UI e podem começar já — mas dependem de **R-02 e R-03**
-> (`06` §1), que definem o número. Se ainda em aberto, implementar parametrizado e **não** publicar
-> saldo como definitivo.
+> Etapas 1–3 **não dependem** de decisão de UI e podem começar já. As regras de direito (marco 2025,
+> 2,5/mês, regra dos 15 dias na rescisão) estão **fechadas** em `02` — R-02/R-03/R-08/R-17 já foram
+> superadas (`06` §1). O saldo é fracionário: guardar em **centésimos/DECIMAL**, nunca `FLOAT`.
 
 ## 2. Reaproveitamento obrigatório (não recriar)
 
@@ -46,11 +46,12 @@ Mesma estratégia que deu certo na refatoração: **de dentro para fora**, domí
 ## 3. Checklist de aceite (funcional)
 
 ### Tabela de PJs
-- [ ] Colunas exatamente: **RLT · Razão Social · Nome Fantasia · Responsável Legal · CNPJ · E-mail · Status**.
-- [ ] **Inativos aparecem** (com Status `Inativo`) — diferente do módulo de NF.
-- [ ] Uma linha por PJ (não por contrato).
-- [ ] Busca por CNPJ funciona **com e sem máscara**.
-- [ ] Filtro de Status usa **Ativo/Inativo** (não Pendente/Enviado/Recebido).
+- [ ] Colunas: **Razão Social · Nº do Contrato · Empresa Vinculada · Status · Informações**.
+- [ ] Coluna **Informações** com os 3 botões de ação: `📄 Extrato`, `ⓘ Informações` e `🔄 Atualizar`.
+- [ ] **Inativos aparecem** (com indicador de status inativo) — diferente do módulo de NF.
+- [ ] Uma linha por contrato.
+- [ ] Busca por CNPJ e Razão Social funciona **com e sem máscara**.
+- [ ] Botão **`🔄 Atualizar`** re-consulta e atualiza os dados daquele fornecedor a partir da Base de PJs.
 
 ### Modal RLT
 - [ ] Colunas: **Data da Ocorrência · ID · Descrição · Tipo · Qtd · Saldo · Quem Lançou · Competência**.
@@ -61,13 +62,15 @@ Mesma estratégia que deu certo na refatoração: **de dentro para fora**, domí
 - [ ] PJ **sem ocorrências** → saldo `0` e estado vazio (não erro).
 
 ### Crédito automático
-- [ ] 30 dias por período aquisitivo **concluído** (default R-02).
+- [ ] Créditos mensais de 2,5 dias acumulam **a partir do ano de 2025**.
+- [ ] Para contratos iniciados antes de 2025 (ex: `15/03/2023`), o primeiro crédito ocorre em `15/03/2025`.
 - [ ] Nenhum crédito para período **futuro**.
 - [ ] **Idempotente**: reprocessar N vezes **não** altera o saldo.
-- [ ] PJ **sem contrato** → sem crédito automático, sem quebrar a tela.
+- [ ] Contrato vencido (`dataFim <= hoje`): lança a rescisão (regra dos 15 dias) **e o débito de encerramento** que zera o saldo acumulado (saldo final = 0).
+- [ ] Um PJ tem no máximo **um contrato ativo** por vez (sempre 100%).
 
 ### Lançamento manual
-- [ ] Quantidade **> 0** e inteira.
+- [ ] Quantidade **> 0** (aceita fração, ex. `2,5`).
 - [ ] Descrição obrigatória.
 - [ ] Débito além do saldo **bloqueado** (default R-05), com mensagem clara.
 - [ ] "Quem lançou" **não é campo do formulário**.
@@ -80,20 +83,21 @@ Mesma estratégia que deu certo na refatoração: **de dentro para fora**, domí
 Mesma exigência da base (`docs/16` §4): domínio testado antes de UI.
 
 ### A. Value Objects
-- [ ] `QuantidadeDeDias` rejeita `0`, negativo e não inteiro.
-- [ ] `PeriodoAquisitivo` deriva corretamente da data (inclusive **29/02**).
+- [ ] `QuantidadeDeDias` rejeita `0` e negativo (aceita fração, ex. 2,5).
+- [ ] `CompetenciaDeRecesso` preserva o dia base em meses curtos (inclusive **29/02**).
 - [ ] `TipoOcorrencia.sinal()` = +1 / −1.
 
-### B. Motor de crédito automático
-- [ ] Contrato `2023-01-01`, hoje `2026-07-17` → **90 dias** (3 créditos) sob o default R-02.
-- [ ] Sob R-02b (antecipado) → **120 dias** — teste parametrizado, provando que a decisão muda o número.
-- [ ] Reprocessar 3× → **continua 90** (idempotência).
-- [ ] Contrato com início futuro → **0**.
-- [ ] Contrato encerrado → para de acumular.
-- [ ] PJ com 2 contratos → **uma série** só (default R-03).
+### B. Motor de crédito mensal
+- [ ] Contrato `15/03/2023`, hoje `17/07/2026` → **42,5 dias** (17 créditos mensais **a partir de 2025**).
+- [ ] Primeiro crédito em **`15/03/2025`** (marco 2025), não na data de início.
+- [ ] Reprocessar N× → **continua 42,5** (idempotência por chave determinística).
+- [ ] Contrato com início/competência **futura** → **0**.
+- [ ] Contrato fora da vigência (`dataFim <= hoje`) → gera **rescisão (+2,5 ou +0)** e **encerramento** (débito) que zera o saldo.
+- [ ] Um PJ tem no máximo **um contrato ativo** por vez (proporção removida).
 
 ### C. Saldo
-- [ ] Running balance do exemplo de `02` §3.4 → `30, 20, 50, 80`.
+- [ ] Running balance do exemplo trabalhado de `02` §3.5 (créditos mensais → rescisão → encerramento = saldo `0`).
+- [ ] Aritmética **fracionária** sem erro de ponto flutuante (centésimos de dia).
 - [ ] **Invariante:** `saldoAtual == última linha == Σcréditos − Σdébitos`.
 - [ ] Extrato vazio → `0`.
 
@@ -110,9 +114,9 @@ Mesma exigência da base (`docs/16` §4): domínio testado antes de UI.
 
 | Risco | Mitigação |
 |---|---|
-| **Data ISO sem hora lida como UTC** desloca o período aquisitivo em 1 ano | Ver §5.1 — bug real encontrado na validação da Fase 1 |
+| **Data ISO sem hora lida como UTC** desloca o cálculo de competência em 1 ano | Ver §5.1 — bug real encontrado na validação da Fase 1 |
 | **Crédito duplicado** corrompe saldo silenciosamente | Índice único filtrado (`03` §5) + teste de idempotência |
-| Regra R-02/R-03 decidida **depois** de gravar dados reais | Fechar `06` §1 antes da Fase 2; manter parametrizado |
+| Saldo fracionário em `FLOAT` acumula erro ao longo de dezenas de meses | Centésimos de dia no domínio, `DECIMAL(10,2)` no banco (`03` §2) |
 | Auditoria inútil por falta de identidade de usuário | Resolver **R-04** antes de liberar em produção |
 | Saldo divergente entre tela e futura exportação | Saldo só existe em `ExtratoDeRecesso` — nunca recalculado na UI |
 | Filtro/busca duplicado (repetir o erro do CNPJ) | Reusar `Cnpj.contem()` e métodos de coleção |
@@ -122,7 +126,7 @@ Mesma exigência da base (`docs/16` §4): domínio testado antes de UI.
 
 `dataInicio` / `dataFim` de contrato chegam como data **sem hora** (`"2023-01-01"`). Nesse formato
 o JavaScript aplica parse **UTC**: em UTC-3 o valor vira `31/12/2022 21:00` local. O efeito é
-silencioso e grave — todo o período aquisitivo desliza um ano:
+silencioso e grave — toda a competência desliza um ano:
 
 | | Antes do fix | Correto |
 |---|---|---|

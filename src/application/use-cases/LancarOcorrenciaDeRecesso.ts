@@ -46,7 +46,7 @@ export class LancarOcorrenciaDeRecesso {
     const tipo = TipoOcorrencia.de(dados.tipo);
     const extrato = await this.extratoDoContrato(dados.contratoId);
 
-    this.garantirContratoAberto(extrato);
+    this.garantirContratoVigente(contrato);
     this.garantirSaldoSuficiente(extrato, tipo, quantidade);
 
     const usuario = await this.deps.usuarioAtual.identificar();
@@ -78,9 +78,11 @@ export class LancarOcorrenciaDeRecesso {
     return new ExtratoDeRecesso(await this.deps.ocorrenciaRepo.doContrato(contratoId));
   }
 
-  private garantirContratoAberto(extrato: ExtratoDeRecesso): void {
-    if (extrato.dataDoEncerramento() === null) return;
-    throw new LancamentoInvalido('Contrato encerrado: não é possível lançar novas ocorrências.');
+  private garantirContratoVigente(contrato: Contrato): void {
+    if (contrato.estaVigente(this.relogio()())) return;
+    throw new LancamentoInvalido(
+      'Contrato fora da vigência: não é possível lançar novas ocorrências.'
+    );
   }
 
   /** R-10 (default): data futura bloqueada. */

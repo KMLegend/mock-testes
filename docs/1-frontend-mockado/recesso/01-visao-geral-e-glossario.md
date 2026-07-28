@@ -9,12 +9,15 @@ status: normativo
 
 ## 1. Objetivo
 
-Controlar o **saldo de recesso (dias)** de cada fornecedor **PJ**, com:
+Controlar o **saldo de recesso (dias)** de cada fornecedor **PJ**, por contrato, com:
 
-- **Crédito automático** de **30 dias** a cada **1 ano de vigência do contrato**;
+- **Crédito automático** de **2,5 dias por mês de vigência**, acumulado a partir do ano de **2025**;
+- **Lançamento automático de encerramento** na `dataFim` do contrato (rescisão + débito que zera o saldo);
 - **Lançamento manual** de ocorrências de **crédito** e **débito** pelo usuário;
-- **Extrato auditável** por PJ (quem lançou, quando, quanto, saldo resultante);
+- **Extrato auditável** por contrato (quem lançou, quando, quanto, saldo resultante);
 - **Saldo atual** visível fora da grade.
+
+---
 
 ## 2. O que muda em relação ao resto do sistema
 
@@ -27,40 +30,41 @@ Controlar o **saldo de recesso (dias)** de cada fornecedor **PJ**, com:
 
 > Consequência prática: **validação e idempotência deixam de ser desejáveis e passam a ser críticas.**
 
+---
+
 ## 3. Glossário (canônico deste módulo)
 
-- **RLT** — Rótulo da **primeira coluna** da tabela de PJs; é um **botão** que abre o **modal com o
-  extrato de recesso** (ocorrências + saldo) daquele PJ.
-  > ⚠️ O **significado da sigla** não foi definido — ver **R-01** em `06`. A **função** está definida.
-- **Ocorrência de Recesso** — Um lançamento no extrato. Tem data, descrição, tipo, quantidade, autor
-  e período aquisitivo. É a **unidade de escrita** do módulo.
+- **Ocorrência de Recesso** — Um lançamento no extrato do contrato. Tem data, descrição, tipo, quantidade, autor
+  e competência mensal. É a **unidade de escrita** do módulo.
 - **Tipo da ocorrência** — **`Crédito`** (aumenta o saldo) ou **`Débito`** (reduz o saldo).
 - **Quantidade** — Número de **dias** da ocorrência. Sempre **positivo**; quem define o sinal é o *tipo*.
 - **Saldo (linha)** — Saldo **acumulado** após aquela ocorrência (running balance), em ordem cronológica.
-- **Saldo Atual** — Saldo final do PJ, exibido **fora da grade** do modal.
-- **Período Aquisitivo** — Janela de **1 ano de vigência do contrato** que dá direito aos 30 dias.
-  Ancorado na **data inicial do contrato**. É o que o usuário chama de "competência" neste módulo.
-  > **Não confundir** com o VO `Competencia` (`MM-AAAA`) do módulo de NF — ver README.
-- **Crédito Automático** — Os 30 dias lançados **pelo sistema** (não por pessoa) ao completar um
-  período aquisitivo. Autor registrado como **`SISTEMA`**.
+- **Saldo Atual** — Saldo final do contrato, exibido **fora da grade** do modal.
+- **Competência Mensal** — Data mensal de aniversário do contrato (`DD/MM/AAAA`). Os créditos iniciam a partir do ano de **2025**.
+- **Crédito Automático** — Os 2,5 dias lançados mensalmente **pelo sistema** (autor `SISTEMA`).
+- **Rescisão e Encerramento Automáticos** — Ao expirar a vigência (`dataFim <= hoje`), o sistema gera a rescisão (ajuste dos dias remanescentes pelo critério dos 15 dias) e o débito de encerramento de contrato que zera o saldo.
 - **Lançado por** — Quem registrou a ocorrência: um **usuário** (lançamento manual) ou **`SISTEMA`**
-  (crédito automático).
+  (crédito/débito automático).
+
+---
 
 ## 4. Atores
 
 | Ator | Faz o quê |
 |---|---|
-| **Usuário (DP/Financeiro)** | Consulta o extrato e **lança** ocorrências (crédito/débito) |
-| **Sistema** | Gera os **créditos automáticos** de 30 dias por período aquisitivo |
+| **Usuário (DP/Financeiro)** | Consulta o extrato, **lança** ocorrências (crédito/débito) e atualiza dados do fornecedor |
+| **Sistema** | Gera os **créditos automáticos** de 2,5 dias por mês a partir de 2025 e o encerramento na `dataFim` |
 | **Fornecedor PJ** | Sujeito do saldo (não acessa o sistema) |
+
+---
 
 ## 5. Fluxo de alto nível
 
 ```
-Contrato (HCM: dataInicio/dataFim)
+Contrato (Base de PJs: dataInicio/dataFim)
         │
-        ├─► Motor de Crédito Automático ──► Ocorrências tipo Crédito (autor: SISTEMA, 30 dias/ano)
-        │                                            │
+        ├─► Motor de Crédito Automático ──► Ocorrências tipo Crédito (autor: SISTEMA, 2,5 dias/mês a partir de 2025)
+        │                                └─► Rescisão + Débito de Encerramento (na dataFim, zera o saldo)
 Usuário ─► lança Ocorrência (Crédito/Débito) ────────┤
                                                      ▼
                                           Extrato ordenado por data
@@ -77,7 +81,7 @@ Usuário ─► lança Ocorrência (Crédito/Débito) ────────�
 - Tabela de PJs com as colunas definidas em `04` §3.
 - **Modal RLT** com o extrato e o saldo atual.
 - **Inserção** de novas ocorrências.
-- **Crédito automático** de 30 dias por ano de vigência.
+- **Crédito automático** mensal de 2,5 dias por contrato (a partir de 2025); rescisão e encerramento automáticos no fim da vigência.
 
 **Fora do escopo (salvo decisão posterior):**
 - Aprovação/workflow de ocorrências (não há etapa de aprovação definida).

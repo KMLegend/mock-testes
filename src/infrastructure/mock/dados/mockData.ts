@@ -8,7 +8,6 @@ import { DataHora } from '../../../domain/value-objects/DataHora';
 import { TipoLancamento } from '../../../domain/value-objects/TipoLancamento';
 import { Competencia } from '../../../domain/value-objects/Competencia';
 import { RegraAlerta } from '../../../domain/value-objects/RegraAlerta';
-import { ProporcaoDeRecesso } from '../../../domain/value-objects/ProporcaoDeRecesso';
 
 export const CNPJ_TOMADORES = new Map<string, string>([
   ['001', '14489313000160'], // CITY INCORPORADORA LTDA
@@ -106,18 +105,18 @@ export const mockFornecedoresData: Fornecedor[] = [
  * Valores fixos, não sorteados em runtime — o saldo esperado de cada PJ precisa ser
  * reproduzível entre recargas e entre testes.
  *
- * Cenários cobertos (o acúmulo é mensal: 2,5 dias × proporção do contrato).
- * Os saldos abaixo valem para a data de referência 22/07/2026 e crescem com o tempo:
+ * Cenários cobertos (o acúmulo é mensal: 2,5 dias por mês de vigência).
+ * Status do contrato vem da VIGÊNCIA (um PJ nunca tem dois contratos ativos ao mesmo tempo):
  *
- *   012  15/03/2023  100%  → dia base 15
- *   013  01/06/2023  100%  → dia base 01
- *   014  23/09/2021  100%  → contrato mais antigo, maior saldo
- *   015  29/02/2024   40%  → bissexto: competência cai em 28/02 nos meses curtos
- *   015  05/11/2024   60%  → mesmo PJ, segundo contrato: 40% + 60% = 100%
- *   016  18/08/2025  100%  → contrato recente, saldo baixo
- *   018  22/07/2025  100%  → 1 ANO exato: 12 competências = 30 dias
- *   019  22/03/2026  100%  → 4 MESES: 4 competências = 10 dias
- *   017  10/05/2022  100%  → PJ inativo no cadastro
+ *   012  15/03/2023 → 31/12/2026   contrato ativo, dia base 15
+ *   013  01/06/2023 → 31/12/2026   contrato ativo, dia base 01
+ *   014  23/09/2021 → 31/12/2026   contrato mais antigo, maior saldo
+ *   015  29/02/2024 → 31/10/2024   contrato 101 ENCERRADO (vigência expirou) → Inativo
+ *   015  05/11/2024 → 31/12/2027   contrato 102 NOVO (gerado após rescisão do 101) → Ativo
+ *   016  18/08/2025 → 31/12/2027   contrato recente, saldo baixo
+ *   018  22/07/2025 → 21/07/2028   contrato ativo
+ *   019  22/03/2026 → 20/03/2028   contrato recente
+ *   017  10/05/2022 → 31/12/2026   PJ inativo no cadastro
  */
 export const mockContratosData: Contrato[] = [
   new Contrato({
@@ -150,29 +149,28 @@ export const mockContratosData: Contrato[] = [
     empresaResponsavel: '001',
     nomeEmpresaResponsavel: 'CITY INCORPORADORA LTDA'
   }),
+  // 015 tem DOIS contratos, mas nunca ativos ao mesmo tempo: o 101 foi rescindido
+  // (vigência encerrou em 31/10/2024) e o 102 foi gerado na sequência.
   new Contrato({
     codEmpresa: '015',
     codContrato: '101',
-    nomeContrato: 'SERVIÇOS - CITY INCORP',
-    // 29/02 de ano bissexto: a competência mensal precisa cair em 28/02 nos meses curtos
+    nomeContrato: 'SERVIÇOS - CITY INCORP (encerrado)',
+    // 29/02 de ano bissexto: a competência mensal cai em 28/02 nos meses curtos
     dataInicio: DataHora.de('2024-02-29'),
-    dataFim: DataHora.de('2026-12-31'),
+    dataFim: DataHora.de('2024-10-31'),
     valorMensal: 10000,
     empresaResponsavel: '001',
-    nomeEmpresaResponsavel: 'CITY INCORPORADORA LTDA',
-    // P-09: PJ em dois contratos — o direito é repartido, não duplicado (40% + 60% = 100%)
-    proporcaoDeRecesso: ProporcaoDeRecesso.de(40)
+    nomeEmpresaResponsavel: 'CITY INCORPORADORA LTDA'
   }),
   new Contrato({
     codEmpresa: '015',
     codContrato: '102',
     nomeContrato: 'SERVIÇOS - SPE PRAÇA DO SOL',
     dataInicio: DataHora.de('2024-11-05'),
-    dataFim: DataHora.de('2026-12-31'),
+    dataFim: DataHora.de('2027-12-31'),
     valorMensal: 15000,
     empresaResponsavel: '002',
-    nomeEmpresaResponsavel: 'SPE RESIDENCIAL PRAÇA DO SOL EMPREENDIMENTOS LTDA',
-    proporcaoDeRecesso: ProporcaoDeRecesso.de(60)
+    nomeEmpresaResponsavel: 'SPE RESIDENCIAL PRAÇA DO SOL EMPREENDIMENTOS LTDA'
   }),
   new Contrato({
     codEmpresa: '016',

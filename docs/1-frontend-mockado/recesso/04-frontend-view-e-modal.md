@@ -51,13 +51,11 @@ Reutilizar o **mesmo componente** de filtros (requisito do usuário). Porém **n
 
 | # | Coluna | Conteúdo |
 |---|---|---|
-| 1 | **RLT** | **Botão** que abre o modal do extrato daquele PJ (§4) |
-| 2 | **Razão Social** | `Fornecedor.nome` |
-| 3 | **Nome Fantasia** | `Fornecedor.apelido` |
-| 4 | **Responsável Legal** | Responsável legal do PJ (**ver R-16** — hoje o HCM não fornece) |
-| 5 | **CNPJ** | `Cnpj.paraExibicao()` (máscara) |
-| 6 | **E-mail** | `Email.paraExibicao()` |
-| 7 | **Status** | **`Ativo` / `Inativo`** (do cadastro do PJ) |
+| 1 | **Razão Social** | `Fornecedor.empresa` + apelido na legenda |
+| 2 | **Nº do Contrato** | `Contrato.codContrato` |
+| 3 | **Empresa Vinculada** | `Contrato.nomeEmpresaResponsavel` + código na legenda |
+| 4 | **Status** | Ícone e indicador se o contrato estiver **Inativo** (fora da vigência) |
+| 5 | **Informações** | **Grupo de 3 botões de ação**: `📄 Extrato` (modal RLT), `ⓘ Informações` (modal do contrato), `🔄 Atualizar` (sincroniza/atualiza o fornecedor a partir da Base de PJs) |
 
 **Diferença relevante em relação ao módulo de NF:** aqui a lista mostra **todos os PJs, inclusive os
 inativos** (por isso existe a coluna Status). No módulo de NF, inativos são **excluídos**

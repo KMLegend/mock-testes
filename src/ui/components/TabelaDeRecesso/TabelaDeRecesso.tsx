@@ -1,19 +1,21 @@
 import React from 'react';
 import styles from './TabelaDeRecesso.module.css';
 import { LinhaDeRecesso } from '../../../application/read-models/LinhaDeRecesso';
-import { IconeExtrato, IconeInformacao, IconeInativo } from '../Icones/Icones';
+import { IconeExtrato, IconeInformacao, IconeInativo, IconeAtualizar } from '../Icones/Icones';
 
 export interface TabelaDeRecessoProps {
   readonly linhas: readonly LinhaDeRecesso[];
   readonly onAbrirExtrato: (linha: LinhaDeRecesso) => void;
   readonly onAbrirInformacao: (linha: LinhaDeRecesso) => void;
+  readonly onAtualizarFornecedor: (linha: LinhaDeRecesso) => void;
 }
 
 /** Uma linha por CONTRATO. Status só aparece quando há algo a sinalizar (inativo). */
 export const TabelaDeRecesso: React.FC<TabelaDeRecessoProps> = ({
   linhas,
   onAbrirExtrato,
-  onAbrirInformacao
+  onAbrirInformacao,
+  onAtualizarFornecedor
 }) => {
   if (linhas.length === 0) {
     return (
@@ -82,6 +84,15 @@ export const TabelaDeRecesso: React.FC<TabelaDeRecessoProps> = ({
                       onClick={() => onAbrirInformacao(linha)}
                     >
                       <IconeInformacao />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.botaoIcone}
+                      title={`Atualizar dados do fornecedor ${linha.fornecedor.empresa}`}
+                      aria-label={`Atualizar dados do fornecedor ${linha.fornecedor.empresa}`}
+                      onClick={() => onAtualizarFornecedor(linha)}
+                    >
+                      <IconeAtualizar />
                     </button>
                   </div>
                 </td>

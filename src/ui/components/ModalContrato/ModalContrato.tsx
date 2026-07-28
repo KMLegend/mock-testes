@@ -1,16 +1,14 @@
 import React, { useEffect } from 'react';
 import styles from './ModalContrato.module.css';
 import { LinhaDeRecesso } from '../../../application/read-models/LinhaDeRecesso';
-import { FormularioDeEncerramento } from './FormularioDeEncerramento';
 
 export interface ModalContratoProps {
   readonly linha: LinhaDeRecesso | null;
   readonly onFechar: () => void;
-  readonly onEncerrar: (dataDaRescisao: string) => Promise<void>;
 }
 
-/** Informações do contrato (docs/modulo-recesso/04): dados cadastrais + encerramento. */
-export const ModalContrato: React.FC<ModalContratoProps> = ({ linha, onFechar, onEncerrar }) => {
+/** Informações do contrato (docs/modulo-recesso/04). Status vem da VIGÊNCIA, não de encerramento manual. */
+export const ModalContrato: React.FC<ModalContratoProps> = ({ linha, onFechar }) => {
   useEffect(() => {
     const aoTeclar = (evento: KeyboardEvent): void => {
       if (evento.key === 'Escape') onFechar();
@@ -22,7 +20,7 @@ export const ModalContrato: React.FC<ModalContratoProps> = ({ linha, onFechar, o
   if (!linha) return null;
 
   const { contrato, fornecedor } = linha;
-  const encerrado = linha.encerradoEm;
+  const vigente = contrato.estaVigente(new Date());
 
   return (
     <div
@@ -67,25 +65,17 @@ export const ModalContrato: React.FC<ModalContratoProps> = ({ linha, onFechar, o
               <dd>{contrato.dataFim.paraFormatadoCurto()}</dd>
             </div>
             <div className={styles.item}>
-              <dt>Proporção do Recesso</dt>
-              <dd>{contrato.proporcaoDeRecesso.paraExibicao()}</dd>
+              <dt>Status (vigência)</dt>
+              <dd>
+                <span
+                  id="status-contrato"
+                  className={`${styles.badge} ${vigente ? styles.badgeAtivo : styles.badgeInativo}`}
+                >
+                  {vigente ? 'Ativo' : 'Inativo'}
+                </span>
+              </dd>
             </div>
           </dl>
-
-          <section className={styles.encerramento}>
-            <h3>Encerramento de Contrato</h3>
-            {encerrado ? (
-              <p className={styles.jaEncerrado} id="aviso-encerrado">
-                Contrato encerrado em {encerrado.toLocaleDateString('pt-BR')}. O saldo foi zerado e
-                novos lançamentos estão bloqueados.
-              </p>
-            ) : (
-              <FormularioDeEncerramento
-                nomeDoContrato={`${contrato.codContrato} — ${fornecedor.empresa}`}
-                onEncerrar={onEncerrar}
-              />
-            )}
-          </section>
         </div>
       </div>
     </div>

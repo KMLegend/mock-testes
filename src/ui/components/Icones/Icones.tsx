@@ -50,3 +50,10 @@ export const IconeInativo: React.FC<IconeProps> = ({ tamanho = PADRAO }) => (
     <path d="M5.6 5.6l12.8 12.8" />
   </svg>
 );
+
+export const IconeAtualizar: React.FC<IconeProps> = ({ tamanho = PADRAO }) => (
+  <svg {...base(tamanho)}>
+    <path d="M21.5 2v6h-6" />
+    <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+  </svg>
+);

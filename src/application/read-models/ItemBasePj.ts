@@ -44,24 +44,22 @@ export class ItemBasePj {
   }
 
   correspondeA(busca: string): boolean {
-    if (!busca || busca.trim() === '') return true;
     const termo = busca.trim().toLowerCase();
+    if (termo === '') return true;
+    return this.bateFornecedor(termo) || this.bateContratos(termo);
+  }
 
-    const bateCamposFornecedor =
-      this.razaoSocial.toLowerCase().includes(termo) ||
-      this.nomeFantasia.toLowerCase().includes(termo) ||
-      this.responsavelLegal.toLowerCase().includes(termo) ||
-      this.fornecedor.email.paraExibicao().toLowerCase().includes(termo) ||
-      this.fornecedor.cnpj.contem(termo) ||
-      this.codEmpresa.toLowerCase().includes(termo);
+  private bateFornecedor(termo: string): boolean {
+    const textos = [this.razaoSocial, this.nomeFantasia, this.responsavelLegal, this.codEmpresa];
+    if (textos.some((texto) => texto.toLowerCase().includes(termo))) return true;
+    return this.fornecedor.email.paraExibicao().toLowerCase().includes(termo)
+      || this.fornecedor.cnpj.contem(termo);
+  }
 
-    if (bateCamposFornecedor) return true;
-
-    // Também pesquisa nos contratos associados
-    return this.contratos.some((c) =>
-      c.codContrato.toLowerCase().includes(termo) ||
-      c.nomeContrato.toLowerCase().includes(termo) ||
-      c.nomeEmpresaResponsavel.toLowerCase().includes(termo)
+  private bateContratos(termo: string): boolean {
+    return this.contratos.some((contrato) =>
+      [contrato.codContrato, contrato.nomeContrato, contrato.nomeEmpresaResponsavel]
+        .some((texto) => texto.toLowerCase().includes(termo))
     );
   }
 }

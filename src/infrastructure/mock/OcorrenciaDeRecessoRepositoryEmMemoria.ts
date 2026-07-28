@@ -6,9 +6,9 @@ import { OrigemDaOcorrencia } from '../../domain/value-objects/OrigemDaOcorrenci
 import { QuantidadeDeDias } from '../../domain/value-objects/QuantidadeDeDias';
 import { TipoOcorrencia } from '../../domain/value-objects/TipoOcorrencia';
 
-// v2: o lançamento passou a ser por contrato e com competência mensal — o formato
-// antigo em disco não é migrável, então a chave muda para descartá-lo.
-const CHAVE_ARMAZENAMENTO = 'nf-pjs:recesso:ocorrencias:v2';
+// v4: início dos créditos ajustado para considerar a partir de 2025 — atualiza a chave
+// para descartar lançamentos armazenados sob o modelo anterior.
+const CHAVE_ARMAZENAMENTO = 'nf-pjs:recesso:ocorrencias:v4';
 
 interface OcorrenciaSerializada {
   id: string;
@@ -21,7 +21,6 @@ interface OcorrenciaSerializada {
   autor: string;
   origem: string;
   criadoEm: string;
-  encerraContrato?: boolean;
 }
 
 /**
@@ -62,6 +61,12 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
     this.persistir();
   }
 
+  /** Limpa lançamentos automáticos do motor quando uma nova carga de cadastro é aplicada. */
+  limparAutomaticos(): void {
+    this.ocorrencias = this.ocorrencias.filter((ocorrencia) => !ocorrencia.origem.ehAutomatica());
+    this.persistir();
+  }
+
   private persistir(): void {
     if (typeof localStorage === 'undefined') return;
     const dados: OcorrenciaSerializada[] = this.ocorrencias.map((ocorrencia) => ({
@@ -74,19 +79,25 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
       quantidade: ocorrencia.quantidade.obterValor(),
       autor: ocorrencia.autor.paraExibicao(),
       origem: ocorrencia.origem.paraArmazenamento(),
-      criadoEm: ocorrencia.criadoEm.toISOString(),
-      encerraContrato: ocorrencia.encerraContrato()
+      criadoEm: ocorrencia.criadoEm.toISOString()
     }));
     localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(dados));
   }
 
   private carregar(): OcorrenciaDeRecesso[] {
     if (typeof localStorage === 'undefined') return [];
+    // Limpeza defensiva das chaves antigas (v1, v2 e v3)
+    localStorage.removeItem('nf-pjs:recesso:ocorrencias:v1');
+    localStorage.removeItem('nf-pjs:recesso:ocorrencias:v2');
+    localStorage.removeItem('nf-pjs:recesso:ocorrencias:v3');
+
     const bruto = localStorage.getItem(CHAVE_ARMAZENAMENTO);
     if (!bruto) return [];
     try {
       const dados = JSON.parse(bruto) as OcorrenciaSerializada[];
-      return dados.map((dado) => this.reconstruir(dado));
+      // Filtra ocorrências antigas salvas com texto de 40% do direito
+      const limpos = dados.filter((d) => !d.descricao.includes('40% do direito'));
+      return limpos.map((dado) => this.reconstruir(dado));
     } catch {
       return [];
     }
@@ -103,8 +114,7 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
       quantidade: this.reconstruirQuantidade(dado.quantidade),
       autor: AutorDoLancamento.usuario(dado.autor),
       origem: OrigemDaOcorrencia.de(dado.origem),
-      criadoEm: new Date(dado.criadoEm),
-      encerraContrato: dado.encerraContrato === true
+      criadoEm: new Date(dado.criadoEm)
     });
   }
 

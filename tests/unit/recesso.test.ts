@@ -3,19 +3,15 @@ import { DataHora } from '../../src/domain/value-objects/DataHora';
 import { Contrato } from '../../src/domain/entities/Contrato';
 import { ExtratoDeRecesso } from '../../src/domain/collections/ExtratoDeRecesso';
 import { MotorDeCreditoMensal } from '../../src/domain/services/MotorDeCreditoMensal';
-import { EncerramentoDeContrato } from '../../src/domain/services/EncerramentoDeContrato';
 import { CompetenciaDeRecesso } from '../../src/domain/value-objects/CompetenciaDeRecesso';
-import { ProporcaoDeRecesso } from '../../src/domain/value-objects/ProporcaoDeRecesso';
 import { QuantidadeDeDias } from '../../src/domain/value-objects/QuantidadeDeDias';
 import { SaldoDeDias } from '../../src/domain/value-objects/SaldoDeDias';
 import { TipoOcorrencia } from '../../src/domain/value-objects/TipoOcorrencia';
-import { AutorDoLancamento } from '../../src/domain/value-objects/AutorDoLancamento';
 
 const HOJE = new Date(2026, 6, 17); // 17/07/2026
 const agora = (): Date => HOJE;
-const AUTOR = AutorDoLancamento.usuario('kevin.maykel@cityinc.com.br');
 
-function contrato(inicio: string, fim: string, proporcao?: number): Contrato {
+function contrato(inicio: string, fim: string): Contrato {
   return new Contrato({
     codEmpresa: '013',
     codContrato: 'C-013',
@@ -24,8 +20,7 @@ function contrato(inicio: string, fim: string, proporcao?: number): Contrato {
     dataFim: DataHora.de(fim),
     valorMensal: 1000,
     empresaResponsavel: '001',
-    nomeEmpresaResponsavel: 'CITY',
-    ...(proporcao === undefined ? {} : { proporcaoDeRecesso: ProporcaoDeRecesso.de(proporcao) })
+    nomeEmpresaResponsavel: 'CITY'
   });
 }
 
@@ -37,23 +32,24 @@ describe('QuantidadeDeDias', () => {
     expect(QuantidadeDeDias.de('1,5').obterValor()).toBe(1.5);
     expect(QuantidadeDeDias.de(2.5).paraExibicao()).toBe('2,5');
   });
-
-  it('nenhuma() é o único caminho para zero', () => {
-    expect(QuantidadeDeDias.nenhuma().obterValor()).toBe(0);
-    expect(QuantidadeDeDias.nenhuma().ehZero()).toBe(true);
-  });
 });
 
-describe('ProporcaoDeRecesso', () => {
-  it('reparte o direito sem duplicar nem perder', () => {
-    expect(ProporcaoDeRecesso.de(40).aplicarA(2.5)).toBe(1);
-    expect(ProporcaoDeRecesso.de(60).aplicarA(2.5)).toBe(1.5);
-    expect(ProporcaoDeRecesso.integral().aplicarA(2.5)).toBe(2.5);
+describe('Contrato — status por vigência', () => {
+  it('ativo quando hoje está dentro de [início, fim]', () => {
+    const ativo = contrato('2024-01-01', '2027-12-31');
+    expect(ativo.estaVigente(new Date(2026, 6, 27))).toBe(true);
+    expect(ativo.statusParaExibicao(new Date(2026, 6, 27))).toBe('Ativo');
   });
 
-  it('rejeita percentual fora de 0–100', () => {
-    expect(() => ProporcaoDeRecesso.de(0)).toThrow();
-    expect(() => ProporcaoDeRecesso.de(101)).toThrow();
+  it('inativo quando a vigência já terminou', () => {
+    const encerrado = contrato('2024-01-01', '2024-10-31');
+    expect(encerrado.estaVigente(new Date(2026, 6, 27))).toBe(false);
+    expect(encerrado.statusParaExibicao(new Date(2026, 6, 27))).toBe('Inativo');
+  });
+
+  it('inativo quando ainda não começou', () => {
+    const futuro = contrato('2030-01-01', '2032-12-31');
+    expect(futuro.estaVigente(new Date(2026, 6, 27))).toBe(false);
   });
 });
 
@@ -79,15 +75,12 @@ describe('CompetenciaDeRecesso', () => {
 describe('MotorDeCreditoMensal', () => {
   const motor = new MotorDeCreditoMensal(agora);
 
-  it('credita 2,5 dias por mês completo — 15/03/2023 até hoje = 40 meses = 100 dias', () => {
+  it('credita 2,5 dias por mês a partir de 2025 — contrato iniciado em 15/03/2023 inicia créditos em 15/03/2025', () => {
     const gerados = motor.gerarPara(contrato('2023-03-15', '2026-12-31'), ExtratoDeRecesso.vazio());
-    expect(gerados.length).toBe(40);
-    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(100);
-  });
-
-  it('a primeira competência nasce um mês DEPOIS do início', () => {
-    const gerados = motor.gerarPara(contrato('2023-03-15', '2026-12-31'), ExtratoDeRecesso.vazio());
-    expect(gerados[0]!.competencia.paraExibicao()).toBe('15/04/2023');
+    // 15/03/2025 até 17/07/2026 = 17 competências = 42.5 dias
+    expect(gerados.length).toBe(17);
+    expect(gerados[0]!.competencia.paraExibicao()).toBe('15/03/2025');
+    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(42.5);
   });
 
   it('contrato com 1 ANO exato rende 30 dias (12 competências)', () => {
@@ -98,32 +91,35 @@ describe('MotorDeCreditoMensal', () => {
     expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(30);
   });
 
-  it('contrato com 4 MESES rende 10 dias', () => {
-    const quatroMeses = new MotorDeCreditoMensal(() => new Date(2026, 6, 22));
-    const gerados = quatroMeses.gerarPara(
-      contrato('2026-03-22', '2028-03-21'),
-      ExtratoDeRecesso.vazio()
-    );
-
-    expect(gerados.length).toBe(4);
-    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(10);
-  });
-
   it('contrato com menos de um mês não gera crédito', () => {
     const gerados = motor.gerarPara(contrato('2026-07-01', '2027-12-31'), ExtratoDeRecesso.vazio());
     expect(gerados.length).toBe(0);
   });
 
-  it('PJ em dois contratos: 40% + 60% somam o mesmo que um contrato integral', () => {
-    const quarenta = motor.gerarPara(contrato('2023-03-15', '2026-12-31', 40), ExtratoDeRecesso.vazio());
-    const sessenta = motor.gerarPara(contrato('2023-03-15', '2026-12-31', 60), ExtratoDeRecesso.vazio());
+  it('para de creditar no fim da vigência e gera rescisão + débito de encerramento para zerar o saldo', () => {
+    // 29/02/2024 → 31/10/2025: créditos a partir de 2025 (8 mensalidades = 20 dias) + 1 rescisão (+2,5) + 1 encerramento (débito 22,5) = 10 ocorrências, saldo final 0
+    const gerados = motor.gerarPara(contrato('2024-02-29', '2025-10-31'), ExtratoDeRecesso.vazio());
+    expect(gerados.length).toBe(10);
+    expect(gerados[8]!.descricao).toContain('Rescisão contratual (+2,5 crédito)');
+    expect(gerados[9]!.descricao).toContain('Encerramento de contrato (zera o saldo atual)');
+    expect(gerados[9]!.tipo.ehDebito()).toBe(true);
+    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(0);
+  });
 
-    const saldoA = new ExtratoDeRecesso(quarenta).saldoAtual().obterValor();
-    const saldoB = new ExtratoDeRecesso(sessenta).saldoAtual().obterValor();
+  it('calcula rescisão com +2,5 crédito e zera o saldo no encerramento da vigência', () => {
+    // 01/01/2025 → 18/02/2025: 1 mensalidade (01/02: 2,5) + rescisão (18/02: 2,5) = saldo 5 -> zeramento (débito 5) = saldo final 0
+    const motorPassado = new MotorDeCreditoMensal(() => new Date(2026, 6, 27));
+    const gerados = motorPassado.gerarPara(contrato('2025-01-01', '2025-02-18'), ExtratoDeRecesso.vazio());
+    const rescisao = gerados.find((g) => g.id.startsWith('auto-rescisao-'));
+    const zeramento = gerados.find((g) => g.id.startsWith('auto-zeramento-'));
 
-    expect(saldoA).toBe(40);
-    expect(saldoB).toBe(60);
-    expect(saldoA + saldoB).toBe(100);
+    expect(rescisao).toBeDefined();
+    expect(rescisao!.descricao).toContain('Rescisão contratual (+2,5 crédito)');
+    expect(rescisao!.quantidade.obterValor()).toBe(2.5);
+
+    expect(zeramento).toBeDefined();
+    expect(zeramento!.quantidade.obterValor()).toBe(5);
+    expect(new ExtratoDeRecesso(gerados).saldoAtual().obterValor()).toBe(0);
   });
 
   it('é IDEMPOTENTE: reprocessar não gera crédito novo', () => {
@@ -134,28 +130,17 @@ describe('MotorDeCreditoMensal', () => {
 
     expect(motor.gerarPara(contratoDeTeste, extrato).length).toBe(0);
     expect(extrato.acrescentar(motor.gerarPara(contratoDeTeste, extrato)).saldoAtual().obterValor())
-      .toBe(100);
-  });
-
-  it('para de creditar no encerramento do contrato', () => {
-    const encerrado = new Date(2024, 0, 31);
-    const gerados = motor.gerarPara(
-      contrato('2023-03-15', '2026-12-31'),
-      ExtratoDeRecesso.vazio(),
-      encerrado
-    );
-    expect(gerados.length).toBe(10); // 15/04/2023 .. 15/01/2024
+      .toBe(42.5);
   });
 });
 
 describe('SaldoDeDias', () => {
-  it('não acumula erro de ponto flutuante ao longo de dezenas de meses', () => {
-    const motor = new MotorDeCreditoMensal(agora);
-    const gerados = motor.gerarPara(contrato('2023-03-15', '2026-12-31', 33), ExtratoDeRecesso.vazio());
-    const saldo = new ExtratoDeRecesso(gerados).saldoAtual();
-
-    // 2,5 × 33% = 0,825 → arredondado a 0,83/mês; 40 meses = 33,2 exatos
-    expect(saldo.obterValor()).toBe(33.2);
+  it('não acumula erro de ponto flutuante somando frações', () => {
+    let saldo = SaldoDeDias.zero();
+    for (let volta = 0; volta < 40; volta += 1) {
+      saldo = saldo.aplicar(TipoOcorrencia.credito(), QuantidadeDeDias.de(2.5));
+    }
+    expect(saldo.obterValor()).toBe(100);
     expect(String(saldo.obterValor())).not.toContain('0000');
   });
 
@@ -163,44 +148,5 @@ describe('SaldoDeDias', () => {
     const saldo = SaldoDeDias.de(2.5);
     expect(saldo.suporta(TipoOcorrencia.debito(), QuantidadeDeDias.de(2.5))).toBe(true);
     expect(saldo.suporta(TipoOcorrencia.debito(), QuantidadeDeDias.de(3))).toBe(false);
-  });
-});
-
-describe('EncerramentoDeContrato', () => {
-  const motor = new MotorDeCreditoMensal(agora);
-  const servico = new EncerramentoDeContrato(AUTOR);
-  const contratoDeTeste = contrato('2023-03-15', '2026-12-31');
-  const extrato = new ExtratoDeRecesso(motor.gerarPara(contratoDeTeste, ExtratoDeRecesso.vazio()));
-
-  it('o último cálculo é o MAX da coluna', () => {
-    expect(extrato.dataDoUltimoCalculo()?.toLocaleDateString('pt-BR')).toBe('15/07/2026');
-  });
-
-  it('15 dias ou mais desde o último cálculo geram +2,5', () => {
-    const [rescisao] = servico.gerarPara(contratoDeTeste, extrato, new Date(2026, 7, 5));
-    expect(rescisao!.quantidade.obterValor()).toBe(2.5);
-    expect(rescisao!.descricao).toContain('+2,5 crédito');
-  });
-
-  it('menos de 15 dias não geram direito', () => {
-    const [rescisao] = servico.gerarPara(contratoDeTeste, extrato, new Date(2026, 6, 25));
-    expect(rescisao!.quantidade.obterValor()).toBe(0);
-    expect(rescisao!.descricao).toContain('+0 crédito');
-  });
-
-  it('o encerramento zera o saldo e marca o contrato', () => {
-    const lancamentos = servico.gerarPara(contratoDeTeste, extrato, new Date(2026, 6, 25));
-    const final = extrato.acrescentar(lancamentos);
-
-    expect(final.saldoAtual().obterValor()).toBe(0);
-    expect(final.dataDoEncerramento()?.toLocaleDateString('pt-BR')).toBe('25/07/2026');
-  });
-
-  it('a proporção também vale na rescisão', () => {
-    const parcial = contrato('2023-03-15', '2026-12-31', 40);
-    const extratoParcial = new ExtratoDeRecesso(motor.gerarPara(parcial, ExtratoDeRecesso.vazio()));
-    const [rescisao] = servico.gerarPara(parcial, extratoParcial, new Date(2026, 7, 5));
-
-    expect(rescisao!.quantidade.obterValor()).toBe(1);
   });
 });

@@ -18,6 +18,7 @@ export const ModuloRecesso: React.FC<ModuloRecessoProps> = ({ controle, linhas }
         linhas={linhas}
         onAbrirExtrato={controle.abrirExtrato}
         onAbrirInformacao={controle.abrirInformacao}
+        onAtualizarFornecedor={controle.atualizarFornecedor}
       />
       <ModalRlt
         linha={controle.modalAberto === 'extrato' ? controle.selecionada : null}
@@ -27,7 +28,6 @@ export const ModuloRecesso: React.FC<ModuloRecessoProps> = ({ controle, linhas }
       <ModalContrato
         linha={controle.modalAberto === 'contrato' ? controle.selecionada : null}
         onFechar={controle.fechar}
-        onEncerrar={controle.encerrar}
       />
     </div>
   );

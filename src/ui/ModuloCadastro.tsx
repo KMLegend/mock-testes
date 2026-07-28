@@ -42,7 +42,7 @@ export const ModuloCadastro: React.FC<ModuloCadastroProps> = ({ controle }) => {
           Exportar base atual
         </button>
         <label className={`${styles.botao} ${styles.enviar}`} id="btn-enviar-planilha">
-          {ocupado ? 'Processando...' : 'Enviar planilha'}
+          {ocupado ? 'Processando...' : 'Importar planilha'}
           <input
             type="file"
             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

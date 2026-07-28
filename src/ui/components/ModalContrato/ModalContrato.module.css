@@ -40,68 +40,13 @@
 
 .mono { font-family: monospace; }
 
-.encerramento {
-  padding-top: 18px;
-  border-top: 1px solid var(--color-border);
+.badge {
+  display: inline-block; padding: 4px 12px; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
 }
-.encerramento h3 {
-  font-family: var(--font-title); font-weight: 600; font-size: 0.95rem;
-  margin: 0 0 12px; color: var(--color-text);
+.badgeAtivo {
+  background-color: var(--color-status-recebido-soft); color: var(--color-status-recebido-text);
 }
-
-.formularioEncerramento {
-  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
-  padding: 16px; background-color: var(--color-surface-subtle);
-  border: 1px solid var(--color-border); border-radius: var(--radius-control);
-}
-.campo { display: flex; flex-direction: column; gap: 5px; }
-.campo label {
-  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.4px; color: var(--color-text-muted);
-}
-.campo input {
-  padding: 9px 11px; border: 1px solid var(--color-border);
-  border-radius: var(--radius-control); font-family: var(--font-text); font-size: 0.9rem;
-  background-color: var(--color-card-bg); color: var(--color-text);
-}
-
-.confirmacao {
-  flex-basis: 100%; margin: 0;
-  padding: 12px 14px; border-radius: var(--radius-control);
-  background-color: var(--color-danger-soft); color: var(--color-danger-text);
-  font-size: 0.88rem; line-height: 1.45;
-}
-
-.botaoPerigo, .botaoPerigoConfirmar {
-  appearance: none; cursor: pointer;
-  font-family: var(--font-title); font-weight: 600; font-size: 0.85rem;
-  padding: 10px 20px; border-radius: var(--radius-control);
-}
-.botaoPerigo {
-  border: 1px solid var(--color-danger-text);
-  background-color: transparent; color: var(--color-danger-text);
-}
-.botaoPerigoConfirmar {
-  border: none;
-  background-color: var(--color-danger-text); color: var(--color-text-header);
-}
-.botaoPerigo:disabled, .botaoPerigoConfirmar:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.botaoCancelar {
-  appearance: none; cursor: pointer;
-  border: 1px solid var(--color-border); background-color: transparent;
-  color: var(--color-text-muted);
-  font-family: var(--font-title); font-weight: 600; font-size: 0.85rem;
-  padding: 10px 18px; border-radius: var(--radius-control);
-}
-
-.erro {
-  flex-basis: 100%; margin: 4px 0 0;
-  color: var(--color-danger-text); font-size: 0.85rem; font-weight: 600;
-}
-
-.jaEncerrado {
-  padding: 14px 16px; margin: 0;
-  background-color: var(--color-bg-muted); border-radius: var(--radius-control);
-  color: var(--color-text-muted); font-size: 0.88rem; line-height: 1.5;
+.badgeInativo {
+  background-color: var(--color-bg-muted); color: var(--color-text-muted);
 }

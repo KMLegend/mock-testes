@@ -41,7 +41,6 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
             <p><strong>Razão Social:</strong> {fornecedor.empresa}</p>
             <p><strong>Contrato:</strong> {contrato.codContrato}</p>
             <p><strong>Empresa Vinculada:</strong> {contrato.nomeEmpresaResponsavel}</p>
-            <p><strong>Proporção:</strong> {contrato.proporcaoDeRecesso.paraExibicao()}</p>
           </div>
 
           <div className={styles.saldoAtual} id="saldo-atual">

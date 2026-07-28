@@ -16,7 +16,6 @@ import { UsuarioAtualFixo } from '../../infrastructure/mock/UsuarioAtualFixo';
 import { MotorDeCreditoMensal } from '../../domain/services/MotorDeCreditoMensal';
 import { ListarContratosParaRecesso } from '../../application/use-cases/ListarContratosParaRecesso';
 import { LancarOcorrenciaDeRecesso } from '../../application/use-cases/LancarOcorrenciaDeRecesso';
-import { EncerrarContrato } from '../../application/use-cases/EncerrarContrato';
 import { ExportarRecesso } from '../../application/use-cases/ExportarRecesso';
 import { ExportadorDeRecessoXlsx } from '../../infrastructure/xlsx/ExportadorDeRecessoXlsx';
 import { BaseDeCadastroStore } from '../../infrastructure/mock/cadastro/BaseDeCadastroStore';
@@ -60,9 +59,8 @@ export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) =>
       lancarOcorrenciaDeRecesso: new LancarOcorrenciaDeRecesso({
         ocorrenciaRepo, contratoRepo, usuarioAtual
       }),
-      encerrarContrato: new EncerrarContrato({ ocorrenciaRepo, contratoRepo, usuarioAtual }),
       exportarRecesso: new ExportarRecesso(new ExportadorDeRecessoXlsx()),
-      cargaDeCadastro: new CargaDeCadastroMock(cadastroStore)
+      cargaDeCadastro: new CargaDeCadastroMock(cadastroStore, ocorrenciaRepo)
     };
   }, []);
 

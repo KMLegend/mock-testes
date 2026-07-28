@@ -18,8 +18,6 @@ export interface PropsOcorrenciaDeRecesso {
   readonly autor: AutorDoLancamento;
   readonly origem: OrigemDaOcorrencia;
   readonly criadoEm: Date;
-  /** Marca o lançamento que encerra o contrato — a grade lê isso para o status. */
-  readonly encerraContrato?: boolean;
 }
 
 /**
@@ -46,10 +44,6 @@ export class OcorrenciaDeRecesso {
 
   ehAutomatica(): boolean {
     return this.props.origem.ehAutomatica();
-  }
-
-  encerraContrato(): boolean {
-    return this.props.encerraContrato === true;
   }
 
   /** Identifica um crédito automático já lançado para a competência (idempotência). */

@@ -76,8 +76,7 @@ Este é **o** formato. É o que a fonte-mock emite hoje e o que o HCM será **ob
       "dataInicio": "2023-03-15",
       "dataFim": "2026-12-31",
       "valorMensal": 5000,
-      "empresaVinculada": { "codigo": "001", "nome": "CITY INCORPORADORA LTDA" },
-      "proporcaoDeRecesso": 100
+      "empresaVinculada": { "codigo": "001", "nome": "CITY INCORPORADORA LTDA" }
     }
   ]
 }
@@ -118,23 +117,13 @@ Este é **o** formato. É o que a fonte-mock emite hoje e o que o HCM será **ob
 | `valorMensal` | number | ➖ | Informativo. |
 | `empresaVinculada.codigo` | string | ✅ | Código da tomadora (exibido sob o nome na grade). |
 | `empresaVinculada.nome` | string | ✅ | Nome da tomadora. |
-| `proporcaoDeRecesso` | number 0–100 \| null | ➖ | Fatia do direito de recesso deste contrato (`modulo-recesso/02` §1.1). Ver §2.4. |
 
-### 2.4 `proporcaoDeRecesso` — o campo sob debate no HCM
+> **Nota (2026-07-27):** O campo `proporcaoDeRecesso` foi **removido**. Um PJ nunca presta serviço
+> a duas empresas ao mesmo tempo (sempre rescinde e gera novo contrato), tornando a proporção
+> sempre 100% e o campo inútil. O status do contrato é derivado automaticamente da vigência
+> (`dataInicio`/`dataFim`).
 
-É exatamente um dos campos que o HCM ainda não sabe fornecer. O contrato o trata como **opcional
-com regra de preenchimento determinística** — assim a fonte pode omiti-lo hoje sem quebrar nada:
-
-| Situação na ingestão | Ação |
-|---|---|
-| Veio preenchido (0–100) | Usa o valor. |
-| Ausente/`null` **e** o PJ tem **1** contrato | Assume **100%**. |
-| Ausente/`null` **e** o PJ tem **N>1** contratos | **Não** inventa rateio: grava `NULL` e **sinaliza para definição manual** (Σ precisa dar 100%). |
-
-> **Invariante de cadastro (a validar na Fase 2):** para cada PJ, `Σ(proporções dos contratos ativos) = 100%`.
-> Registrado como **R-17** em `modulo-recesso/06`.
-
-### 2.5 Regra de ouro do contrato
+### 2.4 Regra de ouro do contrato
 
 > **camelCase no fio, `snake_case` no Python.** O JSON usa camelCase (vocabulário do domínio/frontend);
 > o Pydantic converte para `snake_case` via *alias generator* (§4). O nome do campo no HCM bruto
@@ -202,7 +191,6 @@ class ContratoDTO(_Base):
     data_fim: date
     valor_mensal: float | None = None
     empresa_vinculada: EmpresaVinculadaDTO
-    proporcao_de_recesso: float | None = Field(default=None, ge=0, le=100)
 
 class PayloadDeCadastro(_Base):
     versao_contrato: str
@@ -214,7 +202,7 @@ class PayloadDeCadastro(_Base):
 
 - **`extra="forbid"`** — campo desconhecido é **erro**, não é ignorado. Se o HCM mandar lixo a mais, a
   fronteira acusa. É o coração do "forçar a obedecer".
-- **`pattern`/`ge`/`le`/tipos** — CNPJ com 14 dígitos, proporção 0–100, datas reais. A fonte não
+- **`pattern`/`ge`/`le`/tipos** — CNPJ com 14 dígitos e datas reais (`dataInicio`/`dataFim`). A fonte não
   escolhe o formato; o contrato escolhe.
 
 ---
@@ -249,7 +237,7 @@ class LeitorDeCadastro:
 
 > `LoteDeCadastro` é uma **first-class collection** (Object Calisthenics regra 4): agrupa os
 > fornecedores e contratos já como entidades de domínio e responde perguntas do domínio
-> (`contratos_do(cod_empresa)`, `validar_proporcoes()`), em vez de expor duas listas cruas.
+> (`contratos_do(cod_empresa)`, `fornecedor_de(cod_empresa)`), em vez de expor duas listas cruas.
 
 ---
 
@@ -328,7 +316,7 @@ planilha = os campos do contrato**; a validação (§4) é quem garante os tipos
 
 | Aba `Fornecedores` | Aba `Contratos` |
 |---|---|
-| `cod_empresa` · `razao_social` · `nome_fantasia` · `responsavel_legal` · `email` · `cnpj` · `tipo_inscricao` · `ativo` | `cod_empresa` · `cod_contrato` · `nome_contrato` · `data_inicio` · `data_fim` · `valor_mensal` · `empresa_vinculada_codigo` · `empresa_vinculada_nome` · `proporcao_de_recesso` |
+| `cod_empresa` · `razao_social` · `nome_fantasia` · `responsavel_legal` · `email` · `cnpj` · `tipo_inscricao` · `ativo` | `cod_empresa` · `cod_contrato` · `nome_contrato` · `data_inicio` · `data_fim` · `valor_mensal` · `empresa_vinculada_codigo` · `empresa_vinculada_nome` |
 
 ```python
 # app/services/cadastro/leitor_de_planilha.py
@@ -429,19 +417,19 @@ Regras da ingestão (herdadas de `06` §9 / `12`):
 1. **E-mail normalizado** (`trim`+`lower`) na escrita; único no cadastro (A-14).
 2. **Upsert idempotente** — reprocessar o mesmo lote não duplica; some quem sumiu da fonte
    (soft-delete `is_delete`, nunca `DELETE` físico).
-3. **Proporção** aplicada conforme §2.4; PJ com N>1 contratos e Σ≠100% entra em **relatório de
-   pendência**, não é corrigido no chute.
+3. **Status do contrato** derivado automaticamente da vigência (`dataInicio`/`dataFim`) — não há
+   encerramento manual. Contrato Ativo = hoje dentro de `[dataInicio, dataFim]`.
 4. **Transação** por lote; falha de validação **aborta o lote** (não grava meia-sincronização).
 
 > DDL: a tabela `APP.TB_GER_NF_PJ_FORNECEDOR` de `12` §2.1 já serve. Contratos precisam da sua própria
-> tabela com `data_inicio`, `data_fim`, `empresa_vinculada_codigo/nome` e `proporcao_recesso DECIMAL(5,2) NULL`
+> tabela com `data_inicio`, `data_fim`, `empresa_vinculada_codigo/nome`
 > — DDL proposta no checklist §13.
 
 ### 8.1 Carga manual pelo usuário — upload/download (Opção A)
 
 O **upload é feito no frontend pelo próprio usuário** (é assim que a ferramenta é usada enquanto o HCM
 não existe). O backend expõe três rotas; a tela é desenhada em
-[`frontend/21-carga-base-pj-ui.md`](../frontend/21-carga-base-pj-ui.md).
+[`frontend/21-carga-base-pj-ui.md`](../1-frontend-mockado/21-carga-base-pj-ui.md).
 
 | Método | Rota | O que faz |
 |---|---|---|
@@ -479,8 +467,8 @@ async def importar(arquivo: UploadFile = File(...), _=Depends(verify_integration
 2. **Idempotente** — subir a mesma planilha 2× não duplica (upsert por chave, `08` §8).
 3. **Só perfil administrativo** sobe base — a autorização é **R-04/P-12** (identidade do usuário via
    token; ver `geral/18`). Fase 1 (mock) sem auth.
-4. **Σ das proporções por PJ** validada aqui: PJ com N>1 contratos e Σ≠100% vira **erro de linha** no
-   relatório (não é "corrigido no chute") — R-17.
+4. **Status do contrato** derivado da vigência: contrato Ativo = hoje ∈ `[dataInicio, dataFim]`. Não há
+   encerramento manual nem validação de proporção (sempre 100%).
 
 > O `template` e o `exportar` são **downloads** — já eram permitidos (a regra proibia Excel de
 > *entrada*, não de saída). A mesma planilha que sai do `exportar` volta corrigida pelo `importar`.
@@ -505,7 +493,7 @@ Segue a mesma disciplina de `15` (frontend), com as adaptações pragmáticas de
 |---|---|
 | 1. Um nível de indentação | Métodos curtos; dispatch por dict no lugar de `if/elif` aninhado. |
 | 2. Sem `else` | Guard-clauses com `return`/`raise` (ver `LeitorDeCadastro`, `obter_fonte_de_cadastro`). |
-| 3. Envolver primitivos | `Cnpj`, `Email`, `Proporcao`, `Competencia` como VOs no domínio — string crua só existe **dentro** do adaptador e do DTO de fronteira. |
+| 3. Envolver primitivos | `Cnpj`, `Email`, `Competencia` como VOs no domínio — string crua só existe **dentro** do adaptador e do DTO de fronteira. |
 | 4. First-class collections | `LoteDeCadastro` encapsula as listas e responde perguntas do domínio. |
 | 5. Um ponto por linha | Evitar `payload.contratos[0].empresa_vinculada.nome` espalhado; o VO expõe o que precisa. |
 | 6. Não abreviar | `cod_empresa`, não `cod_emp`; `responsavel_legal`, não `resp`. |
@@ -542,7 +530,7 @@ precisam saber — que a fonte deixou de ser o arquivo JSON.
 | **P-06** | Endpoint/credenciais/campos do HCM | Em debate no Dep. de Sistemas. **Este design não depende disso** para andar: a fonte de hoje é a **planilha** (§6.4/§8.1). |
 | **A-30** | Excel como **entrada** | ✅ **Exceção deliberada** (decisão do usuário): permitida **só** para a carga de cadastro (§8.1), enquanto o HCM não expõe endpoint. Não vale para o fluxo transacional de NF. |
 | **R-16** | Origem do `responsavelLegal` | Opcional no contrato; mock preenche; HCM define depois. |
-| **R-17** | Validação Σ(proporções)=100% por PJ | Vira **erro de linha** no relatório de importação (§8.1); regra de bloqueio a confirmar. |
+| ~~**R-17**~~ | ~~Validação Σ(proporções)=100% por PJ~~ | ⛔ **Superada (2026-07-27):** PJ nunca tem dois contratos ativos (sempre rescinde e gera novo). Proporção removida. |
 | **P-12/R-04** | Autorização de quem pode subir base | Só perfil administrativo. Depende da identidade via token (`geral/18`). |
 | **D-11** | Nomes de tabela/rota | Confirmar com o owner da CITY API. |
 
@@ -550,15 +538,15 @@ precisam saber — que a fonte deixou de ser o arquivo JSON.
 
 - [ ] `PayloadDeCadastro` + DTOs (§4) com `extra="forbid"` e `alias_generator=to_camel`.
 - [ ] Porta `FonteDeCadastro` (§3) e `LeitorDeCadastro` com checagem de versão (§5).
-- [ ] `LoteDeCadastro` (first-class collection) com `contratos_do()` e `validar_proporcoes()`.
+- [ ] `LoteDeCadastro` (first-class collection) com `contratos_do()`.
 - [ ] Adaptadores `FonteJsonEstatica`, `FonteHttpContrato` e `FonteExcel`; **esqueleto** `FonteHcm`.
 - [ ] `LeitorDePlanilha` (§6.4) — `.xlsx` (abas Fornecedores/Contratos) → contrato §2, com `openpyxl`.
 - [ ] Registro `_FONTES` + `obter_fonte_de_cadastro()` em `dependencies.py`; `FONTE_CADASTRO` no `.env`.
-- [ ] `seed/cadastro_v1.json` espelhando os mocks do frontend (incl. PJ 40%/60% e casos de `07` §4).
-- [ ] DDL da tabela de contrato com `proporcao_recesso DECIMAL(5,2) NULL` e `data_inicio/fim DATE`.
+- [ ] `seed/cadastro_v1.json` espelhando os mocks do frontend (casos de `07` §4).
+- [ ] DDL da tabela de contrato com `data_inicio/fim DATE`.
 - [ ] `SincronizarCadastroUseCase`: upsert idempotente, e-mail normalizado, soft-delete, transação/lote.
 - [ ] **Rotas `/v2/cadastro/importar` · `/template` · `/exportar`** (§8.1) com `RelatorioDeImportacao`.
 - [ ] Import **tudo-ou-nada** com relatório de erros por linha (aba/linha/campo/motivo); só admin (P-12).
-- [ ] Aplicação da regra de proporção §2.4 + Σ≠100% como erro de linha no relatório.
+- [ ] Status do contrato derivado da vigência (`dataInicio`/`dataFim`): Ativo se hoje ∈ `[início, fim]`.
 - [ ] Teste de contrato validando o payload da fonte contra `PayloadDeCadastro`.
 - [ ] Confirmar nomes de tabela/rota com o owner (D-11).

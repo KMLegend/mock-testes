@@ -14,7 +14,7 @@ const COLUNAS_FORNECEDOR = [
 ];
 const COLUNAS_CONTRATO = [
   'cod_empresa', 'cod_contrato', 'nome_contrato', 'data_inicio', 'data_fim',
-  'valor_mensal', 'empresa_vinculada_codigo', 'empresa_vinculada_nome', 'proporcao_de_recesso'
+  'valor_mensal', 'empresa_vinculada_codigo', 'empresa_vinculada_nome'
 ];
 
 function linhaFornecedor(dado: FornecedorSerializado): Record<string, string | number> {
@@ -30,8 +30,7 @@ function linhaContrato(dado: ContratoSerializado): Record<string, string | numbe
     cod_empresa: dado.codEmpresa, cod_contrato: dado.codContrato, nome_contrato: dado.nomeContrato,
     data_inicio: dado.dataInicio, data_fim: dado.dataFim, valor_mensal: dado.valorMensal,
     empresa_vinculada_codigo: dado.empresaResponsavel,
-    empresa_vinculada_nome: dado.nomeEmpresaResponsavel,
-    proporcao_de_recesso: dado.proporcaoDeRecesso ?? ''
+    empresa_vinculada_nome: dado.nomeEmpresaResponsavel
   };
 }
 

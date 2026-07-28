@@ -1,5 +1,4 @@
 import { DataHora } from '../value-objects/DataHora';
-import { ProporcaoDeRecesso } from '../value-objects/ProporcaoDeRecesso';
 
 export interface PropsContrato {
   readonly codEmpresa: string;
@@ -10,8 +9,6 @@ export interface PropsContrato {
   readonly valorMensal: number;
   readonly empresaResponsavel: string;
   readonly nomeEmpresaResponsavel: string;
-  /** Fatia do direito de recesso do PJ que cabe a este contrato. Ausente = 100%. */
-  readonly proporcaoDeRecesso?: ProporcaoDeRecesso;
 }
 
 export class Contrato {
@@ -25,10 +22,6 @@ export class Contrato {
   get valorMensal(): number { return this.props.valorMensal; }
   get empresaResponsavel(): string { return this.props.empresaResponsavel; }
   get nomeEmpresaResponsavel(): string { return this.props.nomeEmpresaResponsavel; }
-
-  get proporcaoDeRecesso(): ProporcaoDeRecesso {
-    return this.props.proporcaoDeRecesso ?? ProporcaoDeRecesso.integral();
-  }
 
   ehDoFornecedor(codEmpresa: string): boolean {
     return this.props.codEmpresa === codEmpresa;
@@ -48,5 +41,19 @@ export class Contrato {
     const dia = String(inicio.getDate()).padStart(2, '0');
     const mes = String(inicio.getMonth() + 1).padStart(2, '0');
     return `${dia}/${mes}`;
+  }
+
+  /**
+   * Status derivado da VIGÊNCIA: um PJ nunca presta serviço a duas empresas ao
+   * mesmo tempo — rescinde e gera novo contrato. Ativo = hoje dentro de [início, fim].
+   */
+  estaVigente(hoje: Date): boolean {
+    const inicio = this.props.dataInicio.paraDataLocal().getTime();
+    const fim = this.props.dataFim.paraDataLocal().getTime();
+    return hoje.getTime() >= inicio && hoje.getTime() <= fim;
+  }
+
+  statusParaExibicao(hoje: Date): string {
+    return this.estaVigente(hoje) ? 'Ativo' : 'Inativo';
   }
 }

@@ -3,7 +3,6 @@ import { Contrato } from '../../../domain/entities/Contrato';
 import { Cnpj } from '../../../domain/value-objects/Cnpj';
 import { Email } from '../../../domain/value-objects/Email';
 import { DataHora } from '../../../domain/value-objects/DataHora';
-import { ProporcaoDeRecesso } from '../../../domain/value-objects/ProporcaoDeRecesso';
 
 export interface FornecedorSerializado {
   codEmpresa: string;
@@ -25,7 +24,6 @@ export interface ContratoSerializado {
   valorMensal: number;
   empresaResponsavel: string;
   nomeEmpresaResponsavel: string;
-  proporcaoDeRecesso?: number;
 }
 
 export function serializarFornecedor(fornecedor: Fornecedor): FornecedorSerializado {
@@ -63,8 +61,7 @@ export function serializarContrato(contrato: Contrato): ContratoSerializado {
     dataFim: contrato.dataFim.raw(),
     valorMensal: contrato.valorMensal,
     empresaResponsavel: contrato.empresaResponsavel,
-    nomeEmpresaResponsavel: contrato.nomeEmpresaResponsavel,
-    proporcaoDeRecesso: contrato.proporcaoDeRecesso.obterValor()
+    nomeEmpresaResponsavel: contrato.nomeEmpresaResponsavel
   };
 }
 
@@ -77,9 +74,6 @@ export function reconstruirContrato(dado: ContratoSerializado): Contrato {
     dataFim: DataHora.de(dado.dataFim),
     valorMensal: dado.valorMensal,
     empresaResponsavel: dado.empresaResponsavel,
-    nomeEmpresaResponsavel: dado.nomeEmpresaResponsavel,
-    ...(dado.proporcaoDeRecesso === undefined
-      ? {}
-      : { proporcaoDeRecesso: ProporcaoDeRecesso.de(dado.proporcaoDeRecesso) })
+    nomeEmpresaResponsavel: dado.nomeEmpresaResponsavel
   });
 }

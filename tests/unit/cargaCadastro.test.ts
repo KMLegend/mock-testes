@@ -6,11 +6,11 @@ import { BaseDeCadastroStore } from '../../src/infrastructure/mock/cadastro/Base
 import { CargaDeCadastroMock } from '../../src/infrastructure/mock/cadastro/CargaDeCadastroMock';
 
 const CAB_FORN = ['cod_empresa', 'razao_social', 'nome_fantasia', 'responsavel_legal', 'email', 'cnpj', 'tipo_inscricao', 'ativo'];
-const CAB_CONTR = ['cod_empresa', 'cod_contrato', 'nome_contrato', 'data_inicio', 'data_fim', 'valor_mensal', 'empresa_vinculada_codigo', 'empresa_vinculada_nome', 'proporcao_de_recesso'];
+const CAB_CONTR = ['cod_empresa', 'cod_contrato', 'nome_contrato', 'data_inicio', 'data_fim', 'valor_mensal', 'empresa_vinculada_codigo', 'empresa_vinculada_nome'];
 
 const FORN_OK = ['012', 'KEVIN LTDA', 'Kevin', 'Kevin M', 'kevin@cityinc.com.br', '12345678901234', '1', 'Sim'];
-function contrato(cod: string, num: string, prop: string): string[] {
-  return [cod, num, 'Contrato', '2023-03-15', '2026-12-31', '5000', '001', 'CITY INCORP', prop];
+function contrato(cod: string, num: string): string[] {
+  return [cod, num, 'Contrato', '2023-03-15', '2026-12-31', '5000', '001', 'CITY INCORP'];
 }
 
 function planilha(fornecedores: string[][], contratos: string[][]): ArrayBuffer {
@@ -31,7 +31,7 @@ function arquivoXlsx(buffer: ArrayBuffer): File {
 
 describe('Carga de cadastro — validação da planilha', () => {
   it('planilha correta não gera erros e monta a base', () => {
-    const { base, erros } = validarPlanilha([FORN_OK], [contrato('012', 'C-1', '')]);
+    const { base, erros } = validarPlanilha([FORN_OK], [contrato('012', 'C-1')]);
     expect(erros).toHaveLength(0);
     expect(base.fornecedores).toHaveLength(1);
     expect(base.contratos).toHaveLength(1);
@@ -45,23 +45,14 @@ describe('Carga de cadastro — validação da planilha', () => {
   });
 
   it('contrato apontando para PJ inexistente é reprovado', () => {
-    const { erros } = validarPlanilha([FORN_OK], [contrato('999', 'C-1', '')]);
+    const { erros } = validarPlanilha([FORN_OK], [contrato('999', 'C-1')]);
     expect(erros.some((erro) => erro.campo === 'cod_empresa' && erro.motivo === 'fornecedor não encontrado')).toBe(true);
   });
 
-  it('R-17: proporções de um PJ que não somam 100% são reprovadas', () => {
-    const { erros } = validarPlanilha([FORN_OK], [contrato('012', 'C-1', '40'), contrato('012', 'C-2', '70')]);
-    expect(erros.some((erro) => erro.campo === 'proporcao_de_recesso' && /somam/.test(erro.motivo))).toBe(true);
-  });
-
-  it('40% + 60% para o mesmo PJ é aceito', () => {
-    const { erros } = validarPlanilha([FORN_OK], [contrato('012', 'C-1', '40'), contrato('012', 'C-2', '60')]);
+  it('o mesmo PJ pode ter mais de um contrato na planilha (sem proporção)', () => {
+    const { base, erros } = validarPlanilha([FORN_OK], [contrato('012', 'C-1'), contrato('012', 'C-2')]);
     expect(erros).toHaveLength(0);
-  });
-
-  it('dois contratos sem proporção exigem que ela seja definida', () => {
-    const { erros } = validarPlanilha([FORN_OK], [contrato('012', 'C-1', ''), contrato('012', 'C-2', '')]);
-    expect(erros.some((erro) => /defina a proporção/.test(erro.motivo))).toBe(true);
+    expect(base.contratos).toHaveLength(2);
   });
 });
 
@@ -73,7 +64,7 @@ describe('CargaDeCadastroMock — previsualizar × aplicar', () => {
   it('previsualizar NÃO grava; aplicar substitui a base pela planilha', async () => {
     const store = new BaseDeCadastroStore();
     const carga = new CargaDeCadastroMock(store);
-    const arquivo = arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1', '')]));
+    const arquivo = arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1')]));
 
     const previa = await carga.previsualizar(arquivo);
     expect(previa.erros).toHaveLength(0);

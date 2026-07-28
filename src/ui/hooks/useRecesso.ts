@@ -11,11 +11,11 @@ export interface ControleDoRecesso {
   readonly selecionada: LinhaDeRecesso | null;
   readonly modalAberto: ModalDeRecesso;
   readonly atualizar: () => void;
+  readonly atualizarFornecedor: (linha: LinhaDeRecesso) => void;
   readonly abrirExtrato: (linha: LinhaDeRecesso) => void;
   readonly abrirInformacao: (linha: LinhaDeRecesso) => void;
   readonly fechar: () => void;
   readonly lancar: (dados: DadosDoFormulario) => Promise<void>;
-  readonly encerrar: (dataDaRescisao: string) => Promise<void>;
 }
 
 interface Carga {
@@ -44,15 +44,12 @@ function useLinhasDeRecesso(): Carga {
   return useMemo(() => ({ linhas, atualizando, recarregar }), [linhas, atualizando, recarregar]);
 }
 
-interface Acoes {
-  readonly lancar: (dados: DadosDoFormulario) => Promise<void>;
-  readonly encerrar: (dataDaRescisao: string) => Promise<void>;
-}
-
-function useAcoesDeRecesso(contratoId: string | null, recarregar: () => Promise<void>): Acoes {
-  const { lancarOcorrenciaDeRecesso, encerrarContrato } = useDependencias();
-
-  const lancar = useCallback(
+function useLancarOcorrencia(
+  contratoId: string | null,
+  recarregar: () => Promise<void>
+): (dados: DadosDoFormulario) => Promise<void> {
+  const { lancarOcorrenciaDeRecesso } = useDependencias();
+  return useCallback(
     async (dados: DadosDoFormulario): Promise<void> => {
       if (!contratoId) return;
       await lancarOcorrenciaDeRecesso.executar({ contratoId, ...dados });
@@ -60,24 +57,13 @@ function useAcoesDeRecesso(contratoId: string | null, recarregar: () => Promise<
     },
     [contratoId, lancarOcorrenciaDeRecesso, recarregar]
   );
-
-  const encerrar = useCallback(
-    async (dataDaRescisao: string): Promise<void> => {
-      if (!contratoId) return;
-      await encerrarContrato.executar({ contratoId, dataDaRescisao });
-      await recarregar();
-    },
-    [contratoId, encerrarContrato, recarregar]
-  );
-
-  return useMemo(() => ({ lancar, encerrar }), [lancar, encerrar]);
 }
 
 export function useRecesso(): ControleDoRecesso {
   const { linhas, atualizando, recarregar } = useLinhasDeRecesso();
   const [chave, setChave] = useState<string | null>(null);
   const [modalAberto, setModalAberto] = useState<ModalDeRecesso>(null);
-  const { lancar, encerrar } = useAcoesDeRecesso(chave, recarregar);
+  const lancar = useLancarOcorrencia(chave, recarregar);
 
   // A seleção guarda a CHAVE, não a linha: assim o modal reflete o extrato
   // recém-recarregado em vez de um objeto congelado no clique.
@@ -99,13 +85,14 @@ export function useRecesso(): ControleDoRecesso {
   );
   const fechar = useCallback((): void => { setChave(null); setModalAberto(null); }, []);
   const atualizar = useCallback((): void => { void recarregar(); }, [recarregar]);
+  const atualizarFornecedor = useCallback((_linha: LinhaDeRecesso): void => { void recarregar(); }, [recarregar]);
 
   return useMemo(
     () => ({
       linhas, atualizando, selecionada, modalAberto,
-      atualizar, abrirExtrato, abrirInformacao, fechar, lancar, encerrar
+      atualizar, atualizarFornecedor, abrirExtrato, abrirInformacao, fechar, lancar
     }),
     [linhas, atualizando, selecionada, modalAberto,
-      atualizar, abrirExtrato, abrirInformacao, fechar, lancar, encerrar]
+      atualizar, atualizarFornecedor, abrirExtrato, abrirInformacao, fechar, lancar]
   );
 }

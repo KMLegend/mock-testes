@@ -105,7 +105,7 @@ elegibilidade, **envia o e-mail via Office 365** e grava na Tabela de Alerta. Co
 
 > A API **não** implementa CRON/scheduler de alertas. O worker pode ser um processo no mesmo
 > deploy/imagem ou separado. Ver `05-automacao-alertas.md` e `12` §0.
-> **Desenho do scheduler + worker (Airflow/Graph, SOLID) em [`automacao-alertas/20-scheduler-de-alertas.md`](../automacao-alertas/20-scheduler-de-alertas.md).**
+> **Desenho do scheduler + worker (Airflow/Graph, SOLID) em [`automacao-alertas/20-scheduler-de-alertas.md`](../4-automacao-email/20-scheduler-de-alertas.md).**
 > ~~PENDÊNCIA D-12~~: **endereçada** — gatilho plugável, **Airflow** recomendado (infra já existe). Ver `20` §2.
 
 ## 7. Integração Tomticket (Gateway)

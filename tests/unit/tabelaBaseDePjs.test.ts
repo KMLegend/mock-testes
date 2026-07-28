@@ -80,6 +80,8 @@ describe('ItemBasePj (Read Model da Tabela Base de PJs)', () => {
     expect(c.codContrato).toBe('CONTRATO-012-A');
     expect(c.dataInicio.paraFormatadoCurto()).toBe('15/03/2023');
     expect(c.dataFim.paraFormatadoCurto()).toBe('31/12/2026');
-    expect(c.proporcaoDeRecesso.paraExibicao()).toBe('100%');
+    // Status vem da vigência: dentro de [início, fim] = Ativo; depois do fim = Inativo.
+    expect(c.statusParaExibicao(new Date(2026, 6, 27))).toBe('Ativo');
+    expect(c.statusParaExibicao(new Date(2027, 0, 1))).toBe('Inativo');
   });
 });

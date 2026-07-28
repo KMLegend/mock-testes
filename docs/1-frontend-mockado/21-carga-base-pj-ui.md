@@ -10,7 +10,7 @@ status: normativo-para-implementacao
 
 > **Por que existe.** Enquanto o HCM não expõe endpoint (P-06), **quem alimenta a base de PJs é o
 > usuário**, subindo uma planilha pela própria ferramenta. Esta é a tela dessa carga. O contrato da
-> planilha e o backend estão em [`backend/19` §6.4/§8.1](../backend/19-fonte-de-cadastro-modular.md);
+> planilha e o backend estão em [`backend/19` §6.4/§8.1](../2-backend-homolog/19-fonte-de-cadastro-modular.md);
 > aqui é só a UI e como ela se liga (mock agora, API depois).
 
 > **Exceção deliberada (A-30):** Excel de **entrada** é permitido **só** para esta carga de cadastro —
@@ -76,7 +76,7 @@ export interface CargaDeCadastro {
 ### 3.2 Fase 1 — `CargaMock` (funciona HOJE, sem backend)
 
 O projeto **já tem a lib `xlsx`** (é a que o `ExportadorXlsx` usa). O parse acontece **no cliente**,
-valida com os **mesmos Value Objects** do domínio (`Cnpj`, `Email`, `ProporcaoDeRecesso`, `DataHora`) e,
+valida com os **mesmos Value Objects** do domínio (`Cnpj`, `Email`, `DataHora`) e,
 se limpo, grava nos repositórios mock (`FornecedorRepositoryEmMemoria`, `ContratoRepositoryEmMemoria`,
 `localStorage`). Assim a carga é **usável na demo**, antes de qualquer endpoint.
 
@@ -85,7 +85,7 @@ se limpo, grava nos repositórios mock (`FornecedorRepositoryEmMemoria`, `Contra
 export class CargaMock implements CargaDeCadastro {
   async importar(arquivo: File): Promise<RelatorioDeImportacao> {
     const abas = lerXlsx(await arquivo.arrayBuffer());     // xlsx (client-side)
-    const { validos, erros } = validarComVOs(abas);        // reusa Cnpj/Email/Proporcao...
+    const { validos, erros } = validarComVOs(abas);        // reusa Cnpj/Email/DataHora...
     if (erros.length === 0) this.repos.substituirPor(validos);
     return montarRelatorio(validos, erros);
   }
@@ -137,7 +137,7 @@ associado; a área de arrastar tem fallback de clique.
 Segue os tokens de `11-identidade-visual.md` (CSS Modules, zero HEX hardcoded). A tabela de erros usa a
 mesma paleta de status já existente (vermelho de erro = `--color-danger-*`).
 
----
+--- 
 
 ## 6. SOLID / Object Calisthenics
 
@@ -145,7 +145,7 @@ mesma paleta de status já existente (vermelho de erro = `--color-danger-*`).
 - **DIP**: a UI depende da porta `CargaDeCadastro`, não de `xlsx` nem de `fetch`.
 - **OCP**: `CargaMock` → `CargaHttp` é troca de adaptador, tela intacta.
 - **First-class collection**: `RelatorioDeImportacao` carrega os erros; a tela não recalcula nada.
-- Value Objects reaproveitados (`Cnpj`, `Email`, `ProporcaoDeRecesso`) — a validação do front é **a mesma**
+- Value Objects reaproveitados (`Cnpj`, `Email`, `DataHora`) — a validação do front é **a mesma**
   do resto do app, não uma cópia paralela (a lição das 4 cópias do filtro).
 
 ---

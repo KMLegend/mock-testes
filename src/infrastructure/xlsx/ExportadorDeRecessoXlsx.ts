@@ -28,7 +28,6 @@ export class ExportadorDeRecessoXlsx implements ExportadorDeRecesso {
       'CNPJ': linha.fornecedor.cnpj.paraExibicao(),
       'Nº do Contrato': linha.contrato.codContrato,
       'Empresa Vinculada': linha.contrato.nomeEmpresaResponsavel,
-      'Proporção': linha.contrato.proporcaoDeRecesso.paraExibicao(),
       'Início': linha.contrato.dataInicio.paraFormatadoCurto(),
       'Fim': linha.contrato.dataFim.paraFormatadoCurto(),
       'Dia/Mês Base': linha.contrato.diaEMesBase(),

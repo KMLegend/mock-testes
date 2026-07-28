@@ -12,11 +12,12 @@ export interface DependenciasListarContratos {
   readonly fornecedorRepo: FornecedorRepository;
   readonly ocorrenciaRepo: OcorrenciaDeRecessoRepository;
   readonly motor: MotorDeCreditoMensal;
+  readonly agora?: () => Date;
 }
 
 /**
  * Grade de recesso: uma linha por CONTRATO, já com o acúmulo mensal materializado.
- * Inclui contratos de PJs inativos e encerrados — a grade os marca com ícone.
+ * Inclui contratos fora da vigência e de PJs inativos — a grade os marca com ícone.
  */
 export class ListarContratosParaRecesso {
   constructor(private readonly deps: DependenciasListarContratos) {}
@@ -42,7 +43,7 @@ export class ListarContratosParaRecesso {
 
   private creditosPendentes(contrato: Contrato, geral: ExtratoDeRecesso) {
     const extrato = geral.doContrato(contrato.identificador());
-    return this.deps.motor.gerarPara(contrato, extrato, extrato.dataDoEncerramento());
+    return this.deps.motor.gerarPara(contrato, extrato);
   }
 
   private montarLinha(
@@ -53,13 +54,12 @@ export class ListarContratosParaRecesso {
     const fornecedor = porCodEmpresa.get(contrato.codEmpresa);
     if (!fornecedor) return [];
 
-    const extrato = geral.doContrato(contrato.identificador());
     return [
       new LinhaDeRecesso({
         contrato,
         fornecedor,
-        extrato,
-        encerradoEm: extrato.dataDoEncerramento()
+        extrato: geral.doContrato(contrato.identificador()),
+        hoje: (this.deps.agora ?? (() => new Date()))()
       })
     ];
   }

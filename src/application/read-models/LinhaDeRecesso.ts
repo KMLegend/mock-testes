@@ -7,7 +7,7 @@ export interface PropsLinhaDeRecesso {
   readonly contrato: Contrato;
   readonly fornecedor: Fornecedor;
   readonly extrato: ExtratoDeRecesso;
-  readonly encerradoEm: Date | null;
+  readonly hoje: Date;
 }
 
 /**
@@ -20,7 +20,6 @@ export class LinhaDeRecesso {
   get contrato(): Contrato { return this.props.contrato; }
   get fornecedor(): Fornecedor { return this.props.fornecedor; }
   get extrato(): ExtratoDeRecesso { return this.props.extrato; }
-  get encerradoEm(): Date | null { return this.props.encerradoEm; }
 
   chave(): string {
     return this.props.contrato.identificador();
@@ -30,16 +29,14 @@ export class LinhaDeRecesso {
     return this.props.extrato.saldoAtual();
   }
 
-  /** Encerrado por rescisão OU inativo no cadastro do ERP. */
+  /** Fora da vigência do contrato OU inativo no cadastro do ERP. */
   estaInativo(): boolean {
-    return this.props.encerradoEm !== null || !this.props.fornecedor.ativo;
+    return !this.props.contrato.estaVigente(this.props.hoje) || !this.props.fornecedor.ativo;
   }
 
   motivoDaInatividade(): string {
-    if (this.props.encerradoEm) {
-      return `Contrato encerrado em ${this.props.encerradoEm.toLocaleDateString('pt-BR')}`;
-    }
-    return 'Fornecedor inativo no cadastro';
+    if (!this.props.fornecedor.ativo) return 'Fornecedor inativo no cadastro';
+    return `Contrato fora da vigência (até ${this.props.contrato.dataFim.paraFormatadoCurto()})`;
   }
 
   statusParaExibicao(): string {
