@@ -68,7 +68,10 @@ Tomticket ────────────┘            │                
   - **Recebido** — há registro na Tabela Fato com chamado **finalizado**.
 - **Regras de tempo (D-x/D+x)** — **`D` definido por variável `.env`** (≈ dia 1 do mês seguinte à competência); offsets em **dias corridos**, **sem** validação de dia útil (A-20). Ex.: competência `07-2026` → D = 01/08/2026, D-3 = 29/07, D+1 = 02/08, D+3 = 04/08. (A regra "1º dia útil" do plano foi **removida** — A-15.)
 - **Worker de alertas** — Serviço **Python** com biblioteca de **Scheduler** que executa a automação (2x/dia UTC-3, envio via **Office 365**, gravação na Tabela de Alerta). **Não** usa n8n (A-13).
-- **Marker** — Biblioteca open-source de extração de PDF usada para obter o **CNPJ** do anexo da NF e desambiguar o contrato quando a pessoa tem >1 contrato (A-14, `03` §3.1).
+~~- **Marker** — Biblioteca open-source de extração de PDF usada para obter o **CNPJ** do anexo da NF~~
+  ~~e desambiguar o contrato quando a pessoa tem >1 contrato (A-14, `03` §3.1).~~ **Descontinuado
+  (A-31, 2026-07-29):** o CNPJ é um **campo customizado do próprio chamado no Tomticket**, lido
+  direto do payload — sem PDF, sem Marker.
 - **Chamado** — Ticket no Tomticket (categoria "Recebimento de Notas - PJ") associado ao lançamento de NF.
 - **Categoria (Tomticket)** — Categoria do chamado que identifica "lançamento de NF" (ID/nome a confirmar — ver `09-pendencias-e-decisoes.md`).
 

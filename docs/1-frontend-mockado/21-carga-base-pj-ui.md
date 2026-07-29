@@ -56,7 +56,7 @@ trabalho é o adaptador — e **só o adaptador muda** entre Fase 1 e Fase 2.
 ```
 Tela (React)  →  ImportarCadastro (caso de uso)  →  porta CargaDeCadastro
                                                       ├── Fase 1: CargaMock  (parse no cliente → repos mock)
-                                                      └── Fase 2: CargaHttp  (POST /v2/cadastro/importar)
+                                                      └── Fase 2: CargaHttp  (POST /v2/prestadores/importacao)
 ```
 
 ### 3.1 Porta
@@ -123,7 +123,7 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
 
 ### 3.3 Fase 2 — `CargaHttp`
 
-Troca **só** o adaptador: `importar` faz `POST /v2/cadastro/importar` (multipart) e devolve o relatório
+Troca **só** o adaptador: `importar` faz `POST /v2/prestadores/importacao` (multipart) e devolve o relatório
 que a API montou; `baixarModelo`/`exportarBaseAtual` chamam `/template` e `/exportar`. A **tela não muda**.
 
 ```ts
@@ -131,7 +131,7 @@ que a API montou; `baixarModelo`/`exportarBaseAtual` chamam `/template` e `/expo
 export class CargaHttp implements CargaDeCadastro {
   async importar(arquivo: File): Promise<RelatorioDeImportacao> {
     const form = new FormData(); form.append("arquivo", arquivo);
-    const resposta = await this.api.post("/v2/cadastro/importar", form);
+    const resposta = await this.api.post("/v2/prestadores/importacao", form);
     return resposta.data;                                  // relatório vindo do backend
   }
 }
@@ -225,7 +225,7 @@ mesma paleta de status já existente (vermelho de erro = `--color-danger-*`).
 
 - [ ] Porta `CargaDeCadastro` + `RelatorioDeImportacao` (§3.1).
 - [ ] `CargaMock` (§3.2): parse `xlsx` client-side, validação com VOs, escrita nos repos mock/`localStorage`.
-- [ ] `CargaHttp` (§3.3): `POST /v2/cadastro/importar`, `/template`, `/exportar`.
+- [ ] `CargaHttp` (§3.3): `POST /v2/prestadores/importacao`, `/template`, `/exportacao`.
 - [ ] Tela "Base de PJs": 3 ações, estados de §4, tabela de erros acessível.
 - [ ] Geração client-side do **modelo** e do **export** com a lib `xlsx` (Fase 1).
 - [ ] Recarregar a grade após carga aplicada.

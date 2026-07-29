@@ -29,7 +29,7 @@ Objetivo: isolar o desenvolvimento das fases 2+ antes do acesso real à API.
 | Mês Referente formato texto | `#1005` | Em Andamento | Contratual | "Julho/2026" | Parser → `07-2026` → **Enviado** |
 | E-mail com caixa diferente | `#1006` | Em Andamento | Contratual | 07-2026 | `Joao.Silva@…` casa com `joao.silva@…` → **Enviado** (risco nº 1) |
 | Competência divergente | `#1007` | Finalizado | Contratual | 06-2026 | NÃO afeta 07-2026 (PJ segue Pendente em julho) |
-| Pessoa com >1 contrato | `#1008` | Em Andamento | Ambas | 07-2026 | Marker extrai CNPJ do PDF → resolve o contrato (`03` §3.1) |
+| Pessoa com >1 contrato | `#1008` | Em Andamento | Ambas | 07-2026 | Campo customizado "CNPJ" do chamado resolve o contrato (`03` §3.1, A-31) |
 
 ## 2. Testes do Motor de Status (Tarefa 4.1 — crítico)
 
@@ -40,21 +40,19 @@ Focar em **evitar falsos positivos de "Pendente"**. Casos obrigatórios:
 3. **E-mail com caixa/espaços diferentes** casa após normalização trim + lowercase — risco nº 1 (A-14).
 4. **E-mail duplicado** na Lista de PJ não deve multiplicar linhas.
 5. PJ com **2 chamados** (Contratual + Reembolso, `id_tomticket` distintos) → **2 linhas**, status por tratativa (A-05).
-6. **Pessoa com >1 contrato (mock P-09):** status por e-mail permanece correto; a desambiguação atribui a NF ao contrato certo (não afeta a contagem de status). Ver §2.6.
+6. **Pessoa com >1 contrato (A-31):** status por e-mail permanece correto; a desambiguação atribui a NF ao contrato certo (não afeta a contagem de status). Ver §2.6.
 7. Invariante do rollup: `Pendente + Enviado + Recebido = total de PJ ativos`.
 
-### 2.6 Desambiguação de contrato — mock P-09 (1 PJ em >1 contrato)
+### 2.6 Desambiguação de contrato — campo customizado "CNPJ" (A-31, 1 PJ em >1 contrato)
 Dataset em `13` §4. Fornecedor `carlos.santos@cityinc.com.br` com **2 contratos** (101 → CITY
 `14489313000160`; 102 → SPE Praça do Sol `17928511000170`).
 
-1. **Cenário 1 (1 contrato):** e-mail com 1 contrato → NF atribuída direto, **sem** chamar o extractor.
-2. **Cenário 2 (>1 contrato):** chamado `19166` → `MockNotaCnpjExtractor` devolve `17928511000170` →
+1. **Cenário 1 (1 contrato):** e-mail com 1 contrato → NF atribuída direto, **sem** ler o campo `cnpj`.
+2. **Cenário 2 (>1 contrato):** chamado `19166` → campo `cnpj` do chamado = `17928511000170` →
    resolve **Contrato 102** (SPE Praça do Sol).
-3. **Trocar o mapa** (`19166 → 14489313000160`) → resolve **Contrato 101** (CITY).
-4. **Sem match:** CNPJ extraído não bate com nenhum contrato → marcar **tratamento manual** (não
+3. **Trocar o campo** no mock (`19166 → cnpj = "14489313000160"`) → resolve **Contrato 101** (CITY).
+4. **Sem match:** campo vazio ou CNPJ não bate com nenhum contrato → marcar **tratamento manual** (não
    atribuir contrato aleatório); sinalizar no Dashboard.
-5. **Troca de implementação:** `CNPJ_EXTRACTOR=MARKER` não deve exigir mudança no algoritmo
-   `resolver_contrato` (só a implementação da interface muda).
 
 ## 3. Testes do parser "Mês Referente" (Tarefa 4.2)
 
@@ -105,12 +103,12 @@ Dado `D` = dia 1 do mês **seguinte** à competência:
 
 - Paginação e rate limit.
 - Upsert idempotente pela chave **`id_tomticket`** (GUID do chamado — A-05).
-- Casamento por **e-mail**; desambiguação por **Marker** (PDF) quando >1 contrato (P-09).
+- Casamento por **e-mail**; desambiguação pelo **campo customizado "CNPJ"** do chamado quando >1 contrato (A-31).
 - Interpretação real do "Mês Referente" com dados de produção (amostra).
 
 ## 7. Dados de teste da Lista de PJ e Carga de Cadastro
 
-Criar uma Lista de PJ de teste com pelo menos: um PJ que entrega, um que não entrega, um com `Ambas`, um com **e-mail em caixa diferente** do chamado, um com **>1 contrato** (para o Marker), e um inativo (sem contrato em vigência) para validar a derivação de status.
+Criar uma Lista de PJ de teste com pelo menos: um PJ que entrega, um que não entrega, um com `Ambas`, um com **e-mail em caixa diferente** do chamado, um com **>1 contrato** (para exercitar o campo customizado "CNPJ", A-31), e um inativo (sem contrato em vigência) para validar a derivação de status.
 
 ### 7.1 Cenários de teste de importação e ciclo de vida
 

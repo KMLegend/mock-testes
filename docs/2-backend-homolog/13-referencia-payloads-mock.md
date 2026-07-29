@@ -45,8 +45,8 @@ status: normativo-para-mock
 }
 ```
 > **Cardinalidade relevante:** uma empresa/pessoa pode ter **1..N contratos**. Isso é o que dispara a
-> desambiguação por CNPJ no casamento (cenário 2, `03` §3.1) — **mockada** hoje via
-> `MockNotaCnpjExtractor` (§4), com o Marker real depois.
+> desambiguação por CNPJ no casamento (cenário 2, `03` §3.1) — lida diretamente do **campo
+> customizado "CNPJ" do chamado no Tomticket** (§4, A-31). Sem PDF, sem Marker.
 
 ### 1.3 Retorno **Empresas do UAU** (referência de empresa responsável)
 ```json
@@ -156,6 +156,7 @@ Campo customizado (P-04): **`tipo_de_lancamento`** ∈ `Ambas` \| `Contratual` \
 | `category_name`/`category_id` | filtro | só `Recebimento de Notas - PJ` |
 | `tipo_de_lancamento` | `tipo_lancamento` | normalizar (ver §2.3) |
 | *(Mês Referente)* | `mes_ano_referencia` | **campo customizado; ver §2.4** |
+| *(CNPJ)* | `cnpj` | **campo customizado; só lido no cenário 2 de desambiguação (§4, A-31)** |
 | *(derivado)* | `link_chamado` | montar `TOMTICKET_BASE_URL` + `id`/`protocol` |
 
 ### 2.3 Normalização do `tipo_de_lancamento`
@@ -218,26 +219,24 @@ Placeholders:
 
 > Variação **cobrança** (D+1, D+3): mesmo layout, texto reforçando que a NF **não foi recebida** no prazo.
 
-## 4. Mock da desambiguação por contrato (P-09) — 1 PJ em >1 contrato
+## 4. Mock da desambiguação por contrato (A-31) — 1 PJ em >1 contrato
 
-> **Objetivo:** exercitar o **cenário 2** de `03` §3.1 (pessoa com **mais de um contrato**) **sem** a
-> integração real do Marker/PDF. A extração do CNPJ do anexo é abstraída por uma **interface**; a
-> implementação é trocada por um **mock** que devolve um CNPJ pré-definido por chamado. Quando o
-> Marker estiver disponível, só a implementação muda (arquitetura modular, A-14).
+> **Objetivo:** exercitar o **cenário 2** de `03` §3.1 (pessoa com **mais de um contrato**). O CNPJ
+> vem do **campo customizado "CNPJ" do próprio chamado** — o mesmo payload que já traz
+> `tipo_de_lancamento` e "Mês Referente" (`03` §2/§7). **Não há extração de PDF nem Marker**
+> (P-09/A-21 foram descontinuados — ver `09-pendencias-e-decisoes.md`). O mock deste documento
+> simplesmente **preenche o campo `cnpj` no payload de exemplo** (§4.3), sem simular nenhum passo de
+> extração — porque não há nenhum a simular.
 
-### 4.1 Interface de extração (normativa)
+### 4.1 Leitura do campo (normativa)
 ```python
-# app/services/interfaces/nota_cnpj_extractor.py
-class INotaCnpjExtractor(ABC):
-    """Extrai o CNPJ do tomador (Empresa_Responsavel) a partir do anexo PDF da NF."""
-    @abstractmethod
-    def extrair_cnpj(self, chamado: ChamadoTomticket) -> str | None: ...
-
-# Implementações:
-#   MarkerNotaCnpjExtractor  → real (P-09, futura): roda Marker no PDF anexado ao chamado
-#   MockNotaCnpjExtractor    → mock atual: consulta o mapa fixo da §4.3
+# app/services/cnpj_do_chamado.py
+def cnpj_do_chamado(chamado: ChamadoTomticket) -> str | None:
+    """Lê o campo customizado 'CNPJ' já presente no payload do chamado (A-31)."""
+    return chamado.cnpj
 ```
-> Seleção por config/Strategy (ex.: `CNPJ_EXTRACTOR=MOCK|MARKER`), no mesmo espírito de `FONTE_DADOS`.
+> Sem interface de extração, sem Strategy, sem config `CNPJ_EXTRACTOR` — é leitura de um campo do
+> DTO já mapeado em `03` §7, do mesmo jeito que `chamado.mesReferente` já é lido.
 
 ### 4.2 Dataset — fornecedor com 2 contratos
 **Fornecedor (HCM Empresa):**
@@ -263,13 +262,13 @@ class INotaCnpjExtractor(ABC):
 | `001` | CITY INCORPORADORA LTDA | `14489313000160` |
 | `002` | SPE RESIDENCIAL PRAÇA DO SOL … | `17928511000170` |
 
-### 4.3 Mapa do mock (`MockNotaCnpjExtractor`)
-CNPJ que o mock "extrai" do PDF, por chamado:
-| Chamado (`protocol`) | `email` | CNPJ extraído (mock) | Resolve para |
+### 4.3 Payload do chamado com o campo preenchido (mock)
+CNPJ que o payload de exemplo já traz no campo customizado, por chamado:
+| Chamado (`protocol`) | `email` | Campo `cnpj` no chamado | Resolve para |
 |---|---|---|---|
 | `19166` (Carlos Santos, `Ambas`) | carlos.santos@cityinc.com.br | `17928511000170` | Contrato **102** (SPE Praça do Sol) |
 
-> Para testar o outro ramo, basta mapear `19166 → 14489313000160`, que resolve para o Contrato **101**.
+> Para testar o outro ramo, basta mudar o campo do mock para `14489313000170`, que resolve para o Contrato **101**.
 
 ### 4.4 Algoritmo de desambiguação (normativo)
 ```
@@ -278,15 +277,15 @@ resolver_contrato(chamado):
   contratos = hcm.listar_contratos(pj.cod_empresa)
   se len(contratos) == 1:
      return contratos[0]                            # cenário 1: direto
-  # cenário 2: >1 contrato → extrair CNPJ do PDF (mock hoje, Marker depois)
-  cnpj = extractor.extrair_cnpj(chamado)            # INotaCnpjExtractor
+  # cenário 2: >1 contrato → ler o campo customizado "CNPJ" do próprio chamado (A-31)
+  cnpj = chamado.cnpj
   return contrato cujo CNPJ(Empresa_Responsavel) == cnpj   # senão: marcar p/ tratamento manual
 ```
 
 ### 4.5 Resultado esperado (para o teste)
-- Chamado `19166` (Carlos Santos, 2 contratos) → mock extrai `17928511000170` → **Contrato 102**
+- Chamado `19166` (Carlos Santos, 2 contratos) → campo `cnpj` = `17928511000170` → **Contrato 102**
   (SPE Praça do Sol). A linha na Fato é atribuída a esse contrato.
-- **Sem match** (CNPJ extraído não bate com nenhum contrato) → registrar como **pendência de
+- **Sem match** (campo vazio ou CNPJ não bate com nenhum contrato) → registrar como **pendência de
   tratamento manual** (não atribuir a um contrato aleatório). Log + sinalização no Dashboard.
 
 > Persistir na Fato o `cnpj` resolvido e (se houver coluna) o `cod_contrato` para auditoria.

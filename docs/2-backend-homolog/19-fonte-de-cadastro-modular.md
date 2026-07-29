@@ -429,11 +429,26 @@ O **upload é feito no frontend pelo próprio usuário** (é assim que a ferrame
 não existe). O backend expõe três rotas; a tela é desenhada em
 [`frontend/21-carga-base-pj-ui.md`](../1-frontend-mockado/21-carga-base-pj-ui.md).
 
-| Método | Rota | O que faz |
-|---|---|---|
-| **POST** | `/v2/cadastro/importar` | Recebe o `.xlsx` (multipart), valida, faz upsert/soft delete, devolve **relatório** |
-| GET | `/v2/cadastro/template` | Baixa a **planilha-modelo** vazia (cabeçalhos das 2 abas) |
-| GET | `/v2/cadastro/exportar` | Baixa a **base atual** em `.xlsx` (editar em ciclo / auditoria) |
+> ⚠️ **Nomenclatura corrigida — segunda revisão (2026-07-29 — ver `22-correcoes-pos-validacao-fase2.md`).**
+> A **primeira** correção deste documento havia trocado `app/api/v2/cadastro.py` por
+> `app/api/v2/notas_fiscais_base_pj.py`, aninhando a rota em `/v2/notas-fiscais/base-pj/...`. Essa
+> correção **também estava errada**, e pelo mesmo motivo de fundo: nomear o recurso pelo **primeiro
+> consumidor que o implementou** (notas fiscais), quando o dado — o **prestador PJ** (fornecedor +
+> contrato) — é um **agregado raiz compartilhado**, não uma propriedade de notas fiscais. A base de
+> prestadores serve tanto notas fiscais quanto recesso (e qualquer feature futura). Aninhá-la sob
+> `/notas-fiscais` amarra o dado ao consumidor errado, do mesmo jeito que `/v2/cadastro` o deixava
+> solto demais. O nome correto modela o **recurso dono do dado** (`prestadores`), com notas-fiscais
+> e recesso como **sub-recursos** dele — ver a árvore completa em `22` §1.4.
+
+| Método | Rota | Arquivo | O que faz |
+|---|---|---|---|
+| **POST** | `/v2/prestadores/importacao` | `app/api/v2/prestadores.py` | Recebe o `.xlsx` (multipart), valida, faz upsert/soft delete, devolve **relatório** |
+| GET | `/v2/prestadores/template` | idem | Baixa a **planilha-modelo** vazia (cabeçalhos das 2 abas) |
+| GET | `/v2/prestadores/exportacao` | idem | Baixa a **base atual** em `.xlsx` (editar em ciclo / auditoria) |
+
+> `prestadores` é o agregado raiz (fornecedor PJ + contrato). Notas fiscais (`/v2/notas-fiscais`,
+> `/v2/prestadores/{id}/notas-fiscais`) e recesso (`/v2/recessos`, `/v2/prestadores/{id}/recessos`)
+> são **sub-recursos** que dependem deste cadastro, não donos dele — ver árvore completa em `22` §1.4.
 
 **Fluxo do import** (reusa tudo de §5/§8, só muda a origem dos bytes):
 ```
@@ -442,11 +457,15 @@ UploadFile → LeitorDePlanilha.ler(bytes) → PayloadDeCadastro.model_validate 
 ```
 
 ```python
-# app/api/v2/cadastro.py
-@router.post("/importar")
+# app/api/v2/prestadores.py
+router = APIRouter()
+
+@router.post("/importacao")
 async def importar(arquivo: UploadFile = File(...), _=Depends(verify_integration_token)):
     relatorio = importar_cadastro.executar(await arquivo.read())
     return envelope_mutacao(data=relatorio.para_dict())      # envelope padrão (06 §5)
+
+# main.py: app.include_router(prestadores.router, prefix="/v2/prestadores", ...)
 ```
 
 **Relatório** (o que a tela mostra):
@@ -545,7 +564,7 @@ precisam saber — que a fonte deixou de ser o arquivo JSON.
 - [ ] `seed/cadastro_v1.json` espelhando os mocks do frontend (casos de `07` §4).
 - [ ] DDL da tabela de contrato com `data_inicio/fim DATE`.
 - [ ] `SincronizarCadastroUseCase`: upsert idempotente, e-mail normalizado, soft-delete, transação/lote.
-- [ ] **Rotas `/v2/cadastro/importar` · `/template` · `/exportar`** (§8.1) com `RelatorioDeImportacao`.
+- [ ] **Rotas `/v2/prestadores/importacao` · `/template` · `/exportacao`** (§8.1) com `RelatorioDeImportacao`.
 - [ ] Import **tudo-ou-nada** com relatório de erros por linha (aba/linha/campo/motivo); só admin (P-12).
 - [ ] Status do contrato derivado da vigência (`dataInicio`/`dataFim`): Ativo se hoje ∈ `[início, fim]`.
 - [ ] Teste de contrato validando o payload da fonte contra `PayloadDeCadastro`.

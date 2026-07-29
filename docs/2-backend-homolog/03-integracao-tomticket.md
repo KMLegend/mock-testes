@@ -8,10 +8,15 @@ status: normativo-com-pendencias
 
 # Integração com Tomticket
 
-> **Categoria, situação, campo `tipo_de_lancamento` e formato do "Mês Referente" já estão confirmados**
-> (P-03/P-04/P-05) e consolidados com payload real em `13-referencia-payloads-mock.md` §2. Restam
-> pendências de **endpoints/autenticação reais** e do **anexo PDF + Marker** (P-09). Este documento
-> define **o quê** a integração faz; identificadores concretos ficam parametrizados por configuração.
+> **Categoria, situação, campo `tipo_de_lancamento`, formato do "Mês Referente" e CNPJ já estão
+> confirmados** (P-03/P-04/P-05/P-09) e consolidados com payload real em
+> `13-referencia-payloads-mock.md` §2. Resta pendência de **endpoints/autenticação reais**. Este
+> documento define **o quê** a integração faz; identificadores concretos ficam parametrizados por
+> configuração.
+>
+> **Correção (2026-07-29):** o CNPJ **não** vem de extração de PDF via Marker — é um **campo
+> customizado do próprio chamado no Tomticket**, do mesmo jeito que "Mês Referente" já é. P-09 (Marker)
+> e a interface `INotaCnpjExtractor` estão **descontinuados** — ver §3.1 e `09-pendencias-e-decisoes.md`.
 
 ## 1. Objetivo da integração
 
@@ -38,9 +43,11 @@ Duas rotinas principais (Tarefa 2.1):
 | `category_name`/`category_id` | Filtro (só NF-PJ) | — (filtro) |
 | Campo **`tipo_de_lancamento`** | `Ambas`/`Contratual`/`Reembolso plano de saude` | `tipo_lancamento` |
 | Campo **"Mês Referente"** | Deriva a competência | `mes_ano_referencia` |
+| Campo **"CNPJ"** (customizado) | Desambiguação de contrato quando a pessoa tem >1 contrato (§3.1) | `cnpj` |
 | *(derivado)* | Link ao chamado | `link_chamado` |
 
-> O CNPJ **não** vem no payload do chamado — é resolvido no casamento (§3), e só via Marker no cenário 2.
+> O CNPJ vem do **campo customizado "CNPJ"** do próprio chamado — mesma natureza do "Mês Referente"
+> (§6): um campo que o Tomticket já expõe no payload, sem depender de PDF nem de biblioteca externa.
 
 ## 3. Casamento chamado → fornecedor (normativo — A-14)
 
@@ -56,16 +63,20 @@ Duas rotinas principais (Tarefa 2.1):
 Consultando o **endpoint de Contratos do HCM** (`13` §1.2) para o fornecedor casado:
 
 - **Cenário 1 — 1 contrato vinculado à pessoa:** envio normal (qualquer `tipo_de_lancamento`). O
-  lançamento é atribuído diretamente a esse contrato. **Sem** necessidade de extrair CNPJ.
-- **Cenário 2 — mais de 1 contrato vinculado à pessoa:** extrair o **CNPJ do tomador**
-  (Empresa_Responsavel) do **anexo da NF em PDF** e **validar a qual contrato** o lançamento se refere.
-  A extração é abstraída pela interface **`INotaCnpjExtractor`**:
-  - Implementação real (futura): **Marker** (biblioteca OSS de extração de PDF) — P-09.
-  - **Implementação atual: mock** (`MockNotaCnpjExtractor`) que devolve um CNPJ pré-definido por
-    chamado — ver `13` §4. Permite testar o cenário ponta a ponta já agora.
+  lançamento é atribuído diretamente a esse contrato. **Sem** necessidade de ler o CNPJ.
+- **Cenário 2 — mais de 1 contrato vinculado à pessoa:** ler o **campo customizado "CNPJ"** do
+  próprio chamado (já vem no payload do Tomticket, junto de `tipo_de_lancamento` e "Mês Referente")
+  e **validar a qual contrato** o lançamento se refere.
 
-> Implicação: o CNPJ é um **desambiguador derivado do PDF**, não a chave de junção. Ver `04` §4.
-> Algoritmo de resolução e dataset de teste em `13` §4. P-09 fica **mockada** por enquanto.
+> **Correção (2026-07-29):** este cenário previa extrair o CNPJ do **anexo da NF em PDF** via
+> **Marker** (biblioteca OSS de extração), atrás de uma interface `INotaCnpjExtractor` com
+> implementação real (Marker) e mock (`MockNotaCnpjExtractor`) — ver P-09/A-21 em
+> `09-pendencias-e-decisoes.md`. **Isso não é mais necessário:** o CNPJ é um campo customizado do
+> chamado, lido do mesmo payload que já traz "Mês Referente" e `tipo_de_lancamento`. Não há PDF,
+> não há Marker, não há interface de extração — é leitura direta de campo, igual aos demais.
+>
+> Implicação: o CNPJ continua sendo um **desambiguador**, não a chave de junção (essa é o e-mail,
+> A-14) — só que lido do payload do chamado, não extraído de anexo. Ver `04` §4.
 
 ## 4. Mapeamento de estado do chamado → status
 
@@ -114,7 +125,8 @@ listarChamadosNF(params: {
   situacao: 'Em Andamento' | 'Finalizado',
   link: string,               // derivado
   tipoLancamento: 'Ambas' | 'Contratual' | 'Reembolso plano de saude',
-  mesReferente: string        // bruto; parser → "MM-AAAA"
+  mesReferente: string,       // bruto; parser → "MM-AAAA"
+  cnpj?: string                // campo customizado "CNPJ"; usado só na desambiguação (§3.1, cenário 2)
 }
 ```
 
@@ -130,7 +142,9 @@ listarChamadosNF(params: {
 ## 9. Pendências desta integração
 
 - **Endpoints, autenticação e limites reais** da API do Tomticket (o formato de retorno já está em `13`).
-- **P-09:** acesso ao **anexo PDF** do chamado + integração do **Marker** para extração de CNPJ (cenário 2 do casamento, §3.1).
-- **"Mês Referente":** garantir o campo customizado no chamado (o payload de exemplo não o traz — §6).
+- **"Mês Referente" e "CNPJ":** garantir os dois campos customizados no chamado (o payload de exemplo
+  de `13` §2.1 ainda não os traz — §6, §3.1).
 
-Ver `09-pendencias-e-decisoes.md`. (Categoria, campo `tipo_de_lancamento` e formato de "Mês Referente" já **confirmados** — P-03/P-04/P-05.)
+Ver `09-pendencias-e-decisoes.md`. (Categoria, campo `tipo_de_lancamento`, formato de "Mês Referente"
+e CNPJ via campo customizado já **confirmados** — P-03/P-04/P-05/P-09. **P-09 mudou de escopo**:
+deixou de ser "Marker + anexo PDF" e passou a ser "garantir o campo customizado CNPJ no chamado".)

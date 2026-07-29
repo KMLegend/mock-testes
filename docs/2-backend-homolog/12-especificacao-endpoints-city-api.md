@@ -44,8 +44,9 @@ status: normativo-para-implementacao
 - Sincronizar os PJ ativos → `APP.TB_GER_NF_PJ_FORNECEDOR` (fonte da verdade do Left Join).
 - **Chave de casamento com o Tomticket (A-14):** **e-mail** (normalizado trim + lowercase). Garantir
   **unicidade do e-mail** no cadastro.
-- **CNPJ**: guardado no cadastro (origem HCM), usado só como **desambiguador** via Marker quando a
-  pessoa tem >1 contrato (`03` §3.1). Não é a chave de junção.
+- **CNPJ**: guardado no cadastro (origem HCM), usado só como **desambiguador** — lido do **campo
+  customizado "CNPJ" do próprio chamado no Tomticket** (A-31) quando a pessoa tem >1 contrato
+  (`03` §3.1). Não é a chave de junção.
 
 > PENDÊNCIA P-06: endpoint/credenciais/campos do HCM. Formato de retorno já fixado (`13` §1).
 
@@ -104,7 +105,7 @@ CREATE TABLE APP.TB_GER_NF_PJ_RECEPCAO (
     mes_ano_referencia VARCHAR(10) NOT NULL,        -- "MM-AAAA"
     nome               VARCHAR(255),                -- `name`
     email              VARCHAR(255) NOT NULL,       -- CHAVE DE CASAMENTO (A-14)
-    cnpj               VARCHAR(14),                 -- via casamento/Marker (cenário 2)
+    cnpj               VARCHAR(14),                 -- campo customizado do chamado (cenário 2, A-31)
     assunto            VARCHAR(500),                -- `subject`
     data_abertura      DATETIME2,                   -- `creation_date`
     data_finalizacao   DATETIME2,                   -- `end_date` (NULL enquanto aberto)
@@ -244,9 +245,9 @@ Env vars: `TOMTICKET_BASE_URL`, `TOMTICKET_TOKEN`,
 `TOMTICKET_PORTAL_URL` (para o template de e-mail).
 
 > **Desambiguação por contrato (cenário 2, `03` §3.1):** quando o e-mail casado tiver >1 contrato no
-> HCM, extrair o CNPJ do tomador via **`INotaCnpjExtractor`** e resolver o contrato.
-> Implementação atual = **`MockNotaCnpjExtractor`** (mapa fixo, `13` §4); real = `MarkerNotaCnpjExtractor` (P-09).
-> Seleção por config `CNPJ_EXTRACTOR=MOCK|MARKER`.
+> HCM, ler o **campo customizado "CNPJ" do próprio chamado** (já vem no payload do
+> `ChamadoTomticket`, `03` §7) e resolver o contrato por match. **Sem extração de PDF, sem Marker,
+> sem interface de extração** — é leitura direta de campo (A-31, substitui P-09/A-21).
 
 ## 6. Dependency Injection (`app/dependencies.py`)
 ```python
@@ -254,7 +255,6 @@ get_pj_repository()          # DataSource(APP.TB_GER_NF_PJ_FORNECEDOR) + FonteHC
 get_nota_fiscal_repository() # DataSource(APP.TB_GER_NF_PJ_RECEPCAO)
 get_alerta_repository()      # DataSource(APP.TB_GER_NF_PJ_ALERTA)  — log de disparos
 get_tomticket_gateway()      # ConnectionTomticket ou FonteMock (Strategy FONTE_DADOS)
-get_cnpj_extractor()         # MockNotaCnpjExtractor ou MarkerNotaCnpjExtractor (CNPJ_EXTRACTOR)
 get_status_service()         # PjRepository + NotaFiscalRepository (Left Join por email)
 ```
 
@@ -283,10 +283,8 @@ texto, e-mail com caixa diferente, competência divergente, 1 vs. >1 contrato). 
 - [ ] Gravar `ALERTA` **só após sucesso** do envio (idempotência `UNIQUE(email, regra, competência)`).
 - [ ] Template de e-mail com identidade City (`13` §3, `11`).
 
-**Desambiguação (cenário 2 — `03` §3.1, `13` §4):**
-- [ ] `INotaCnpjExtractor` + **`MockNotaCnpjExtractor`** (mapa fixo) — habilita o teste de 1 PJ com >1 contrato **agora**.
-- [ ] Algoritmo `resolver_contrato` (1 contrato → direto; >1 → extrator → match por CNPJ do tomador).
-- [ ] Sem match → marcar **tratamento manual** (não atribuir contrato aleatório).
-- [ ] (Depois) `MarkerNotaCnpjExtractor` real — P-09.
+**Desambiguação (cenário 2 — `03` §3.1, A-31):**
+- [ ] Algoritmo `resolver_contrato` (1 contrato → direto; >1 → ler campo `cnpj` do `ChamadoTomticket` → match por CNPJ do tomador).
+- [ ] Sem valor no campo ou sem match → marcar **tratamento manual** (não atribuir contrato aleatório).
 
 **Testes (`08`)** e confirmação de nomes de tabela/rota com o owner (D-11).

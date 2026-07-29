@@ -34,9 +34,9 @@ Para cada PJ ativo em Lista de PJ, para a competência :mes_ano_referencia:
 ```
 
 > **Chave de casamento (A-14):** a junção é por **e-mail** (normalizado trim + lowercase). Não há
-> chave de fallback fixa. O **CNPJ** só entra como **desambiguador** (extraído do PDF via Marker)
-> quando a pessoa tem **mais de um contrato** — ver `03` §3.1. Isso resolve *qual contrato* a NF
-> atende, mas **não** é a chave de junção do status.
+> chave de fallback fixa. O **CNPJ** só entra como **desambiguador** (campo customizado do chamado
+> no Tomticket, A-31) quando a pessoa tem **mais de um contrato** — ver `03` §3.1. Isso resolve
+> *qual contrato* a NF atende, mas **não** é a chave de junção do status.
 
 ### 2.1 Múltiplos chamados no mesmo período (A-05)
 
@@ -89,7 +89,7 @@ Todos estes casos fazem um PJ que **entregou** parecer **Pendente**. Prevenir e 
 4. **Sync desatualizado** — o chamado existe no Tomticket mas ainda não foi sincronizado. → Rodar o cálculo de status **após** o sync.
 5. **PJ inativo/ativo** — considerar apenas `ativo = 1`, sem excluir PJ que estava ativo no período histórico consultado.
 6. **E-mail duplicado na Lista de PJ** — se o mesmo e-mail existir em duas linhas, a junção multiplica registros. → Garantir unicidade do e-mail no cadastro (ou tratar 1 pessoa → N contratos via desambiguação, `03` §3.1).
-7. **Pessoa com >1 contrato** — não é falso Pendente do status, mas exige desambiguação por Marker para atribuir a NF ao contrato certo (`03` §3.1). O status por e-mail permanece correto.
+7. **Pessoa com >1 contrato** — não é falso Pendente do status, mas exige desambiguação pelo campo customizado "CNPJ" do chamado para atribuir a NF ao contrato certo (`03` §3.1, A-31). O status por e-mail permanece correto.
 
 ## 5. Consultas de status derivadas (para o Dashboard)
 

@@ -42,7 +42,7 @@ instanciação no Composition Root (por trás de uma flag/env, para poder altern
 | `ChamadoRepository` | `ChamadoRepositoryEmMemoria` | `ChamadoRepositoryHttp` | `GET /v2/notas-fiscais/status` |
 | `AlertaRepository` | `AlertaRepositoryEmMemoria` | `AlertaRepositoryHttp` | `GET /v2/notas-fiscais/comunicados` |
 | `OcorrenciaDeRecessoRepository` | `OcorrenciaDeRecessoRepositoryEmMemoria` | `OcorrenciaDeRecessoRepositoryHttp` | `2-backend-homolog/recesso/05` |
-| `CargaDeCadastro` | `CargaDeCadastroMock` | `CargaDeCadastroHttp` | `/v2/cadastro/importar`, `/template`, `/exportar` (`2-backend-homolog/19` §8.1) |
+| `CargaDeCadastro` | `CargaDeCadastroMock` | `CargaDeCadastroHttp` | `/v2/prestadores/importacao`, `/template`, `/exportacao` (`2-backend-homolog/19` §8.1) |
 | `UsuarioAtual` | `UsuarioAtualFixo` | adaptador real de identidade | ver §3 |
 | `ExportadorDePlanilha` / `ExportadorDeRecesso` | geram `.xlsx` no cliente | manter client-side **ou** mover para `/export` do backend | `2-backend-homolog/12` §3.4 |
 

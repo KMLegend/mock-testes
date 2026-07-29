@@ -168,27 +168,26 @@ sem necessidade real.
 
 ---
 
-## C-04 — 🟡 Port `ExtratorCnpjDaNota` não implementado
+## C-04 — ✅ Superado (2026-07-29): `ExtratorCnpjDaNota` como port não é mais necessário
 
-### Evidência
-`14` §7 e a decisão **A-21** definem o port `ExtratorCnpjDaNota` com implementações
-`Mock` (agora) e `Marker` (P-09), selecionáveis por `CNPJ_EXTRACTOR=MOCK|MARKER`.
-Na implementação, o CNPJ chega como **propriedade do chamado** (`chamado.cnpjAnexo`) e
-`ResolucaoDeContrato` o lê direto — o port não existe.
+### Evidência (histórico)
+`14` §7 e a decisão **A-21** (agora substituída por **A-31**) definiam o port `ExtratorCnpjDaNota`
+com implementações `Mock` (agora) e `Marker` (P-09), selecionáveis por
+`CNPJ_EXTRACTOR=MOCK|MARKER`. Na implementação, o CNPJ chega como **propriedade do chamado**
+(`chamado.cnpjAnexo`) e `ResolucaoDeContrato` o lê direto — o port não existe. Este achado
+apontava isso como um problema: supunha que o CNPJ real viria do **Marker** (I/O assíncrono de
+PDF/OCR), o que não caberia como propriedade síncrona de entidade.
 
-> A **lógica de resolução está correta** (1 contrato → direto; >1 → CNPJ; sem match → Tratamento
-> Manual). O problema é de fronteira: o Marker é I/O assíncrono (ler PDF/OCR) e **não cabe** como
-> propriedade síncrona de entidade — vai exigir retrabalho na Fase 2.
+### Por que deixou de ser um problema
+O CNPJ **não vem de PDF** — é um **campo customizado do próprio chamado no Tomticket** (A-31, ver
+`03-integracao-tomticket.md` §3.1), no mesmo payload síncrono que já traz `tipo_de_lancamento` e
+"Mês Referente". **A implementação atual (`chamado.cnpjAnexo` como propriedade lida direto) já é
+o desenho correto** — não há I/O assíncrono a acomodar, e portanto não há port a criar. A lógica de
+resolução em si sempre esteve certa (1 contrato → direto; >1 → CNPJ; sem match → Tratamento Manual).
 
-### Correção
-- [ ] Criar `application/ports/ExtratorCnpjDaNota.ts` com `extrair(chamado): Promise<Cnpj | null>`.
-- [ ] Criar `infrastructure/mock/ExtratorCnpjMock.ts` (mapa fixo de `13` §4.3).
-- [ ] `ObterStatusDaCompetencia` passa o CNPJ extraído para `ResolucaoDeContrato` (que continua puro).
-- [ ] Selecionar a implementação no **Composition Root**.
-
-### Verificação
-- [ ] Trocar mock → Marker exige alterar **apenas** o Composition Root.
-- [ ] Cenários de `13` §4.5 continuam válidos (contrato 102; troca de CNPJ; sem match → Manual).
+### Nada a fazer
+Nenhuma correção pendente. Se o campo se chamar diferente do esperado no payload real do Tomticket,
+é um ajuste de mapeamento (renomear a leitura), não uma mudança de arquitetura.
 
 ---
 

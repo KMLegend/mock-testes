@@ -33,7 +33,8 @@ Cada módulo tem **um motivo para mudar**.
 ### O — Open/Closed
 Aberto para extensão, fechado para modificação.
 - Adicionar a fonte **HTTP** (Fase 2) = **criar** um adapter novo, **sem alterar** domínio nem UI.
-- Trocar o extrator de CNPJ mock → **Marker** (P-09) = novo adapter do mesmo port.
+- Trocar a fonte de cadastro mock → **HCM** (quando disponível) = novo adapter do mesmo port
+  `FonteDeCadastro` (`19` §6), sem tocar em domínio nem nas rotas existentes.
 
 ### L — Liskov
 Qualquer implementação de um port é substituível sem quebrar quem a usa.

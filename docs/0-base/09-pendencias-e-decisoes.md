@@ -24,7 +24,7 @@ status: rastreador
 | P-05 | Formato do **"Mês Referente"** | **Resolvido** | Exibição `07/2026`; **sistêmico `07-2026`** (A-19). |
 | P-06 | **Endpoint/credenciais do HCM** | **Aberto** | Formato conhecido; falta o endpoint real. Mockar por enquanto. |
 | P-08 | Credenciais/caixa remetente **Office 365** (worker) | **Aberto** | — |
-| P-09 | **Anexo PDF + Marker** para extrair CNPJ (desambiguação, cenário 2) | **Mockado** | Interface `INotaCnpjExtractor` + `MockNotaCnpjExtractor` (mapa fixo, `13` §4) já habilita o cenário 1 PJ × >1 contrato. Real (**Marker** + acesso ao anexo) fica para depois. |
+| ~~P-09~~ | ~~Anexo PDF + Marker para extrair CNPJ (desambiguação, cenário 2)~~ | **Resolvido, escopo mudou (A-31)** | CNPJ é **campo customizado do chamado** (mesma natureza de "Mês Referente") — sem PDF, sem Marker. Falta só confirmar o campo existe em todo chamado (mesma pendência operacional de "Mês Referente"). |
 | ~~P-07~~ | ~~Calendário de feriados / "1º dia útil"~~ | **Cancelado** | Não se aplica: `D` vem do `.env` e **não há** validação de dia útil (A-15/A-20). |
 
 ## 2. Decisões confirmadas (A-xx)
@@ -49,14 +49,14 @@ status: rastreador
 | ID | Decisão | Definição | Ref. |
 |---|---|---|---|
 | **A-13** | Automação de alertas | **Worker Python** com **Scheduler** (ex.: APScheduler/`schedule`) — **não** n8n. Reutiliza a camada de dados. | `05`, `06` §6 |
-| **A-14** | Chave de casamento chamado × PJ | **E-mail** (única, normalizada). **Sem** chave de fallback fixa. **CNPJ** só desambigua via **Marker** (PDF) quando a pessoa tem **>1 contrato**. | `02` §2, `03` §3, `04` §2 |
+| **A-14** | Chave de casamento chamado × PJ | **E-mail** (única, normalizada). **Sem** chave de fallback fixa. **CNPJ** só desambigua (campo customizado do chamado, **A-31**) quando a pessoa tem **>1 contrato**. | `02` §2, `03` §3, `04` §2 |
 | **A-15** | Regra "1º dia útil" | **Removida.** As regras de tempo são **D-3, D, D+1, D+3**. | `05` §2 |
 | **A-16** | Agendamento | **2x/dia** (manhã + tarde), **UTC-3**; a tarde é **retentativa** do que falhou de manhã. | `05` §3 |
 | **A-17** | Envio de e-mail | **Office 365**, executado **pelo worker** (`IEmailSender`). City não tem SMTP próprio. | `05` §7 |
 | **A-18** | Modelo de dados | **3 tabelas**: `FORNECEDOR`, `RECEPCAO` (fato), `ALERTA` (log de disparos). O "Comunicado" do plano foi **unificado na Alerta**. Fila de elegíveis é calculada sob demanda. | `02`, `12` §2 |
 | **A-19** | Formato de competência | **Sistêmico `MM-AAAA`** (`07-2026`); **exibição `MM/AAAA`** (`07/2026`). | `02`, `13` §2.4 |
 | **A-20** | Prazo `D` e contagem | **`D` definido por variável `.env`** (≈ dia 1 do mês seguinte à competência). Offsets em **dias corridos**; **sem** validação de dia útil/feriado. | `05` §2 |
-| **A-21** | Desambiguação de contrato (P-09) | Extração de CNPJ atrás da interface **`INotaCnpjExtractor`**; **mock** (`MockNotaCnpjExtractor`) por enquanto, **Marker** depois, trocável por `CNPJ_EXTRACTOR=MOCK\|MARKER`. Sem match → tratamento manual. | `13` §4, `03` §3.1 |
+| ~~A-21~~ | ~~Desambiguação de contrato (P-09)~~ | **Substituída por A-31** (CNPJ é campo customizado do chamado, não extração de PDF). | — |
 | **A-22** | Fases de desenvolvimento | **Fase 1 = frontend mockado interativo** (status Pendente/Enviado/Recebido sobre interface modular, sem backend); **Fase 2 = backend** (endpoints CITY API + integrações + worker); Fase 3 = validação. UI não muda entre fases. | `10-roadmap-fases-tarefas.md` |
 | **A-23** | Colunas da tabela de status *(revisada — ver registro)* | **Razão Social**, **Nome Fantasia** (apelido), **Responsável Legal** (`name` do chamado), CNPJ, E-mail, Status, Nº Chamado, Abertura, Finalização, Tipo de Lançamento, Link — precedidas do botão de mensagens. | `07` §1 |
 | **A-24** | Histórico de comunicação | **Duas visões complementares:** (a) **aba "Mensagens"** com todos os alertas (Responsável Legal, E-mail, CNPJ, Regra, Data/Hora, Ano/Mês); (b) **modal por PJ**, aberto por **botão na 1ª coluna do grid** (Regra, Data/Hora, Ano/Mês, Tipo). Ambas leem a Tabela de Alerta e funcionam para PJ Pendente. | `07` §2 |
@@ -65,6 +65,7 @@ status: rastreador
 | **A-27** | Coluna "Responsável Legal" nas Mensagens (resolve D-14) | A aba/planilha de Mensagens exibe a **pessoa responsável legal** do PJ, **não a razão social**. O campo da Tabela de Alerta passa a ser **`responsavel_legal`** (antes `nome`, que gravava razão social). | `07` §2.1, `02` §4, `05` §8 |
 | **A-28** | Hospedagem e identidade | A aplicação roda **embarcada no SharePoint** (iframe); **usuários e controle de acesso são os do SharePoint / Entra ID** — sem cadastro próprio. O backend deve derivar a identidade de um **token de usuário verificável** (nunca de valor enviado pelo cliente). | `18-hospedagem-sharepoint-e-identidade.md` |
 | **A-29** | Forma de entrega do frontend (resolve P-11 de `18`) | **SPFx web part** publicada no SharePoint, com **CITY API** como backend e token de **usuário** do Entra ID via `AadHttpClient`. Descartada a alternativa SPA+iframe+MSAL. | `spfx-sharepoint/` |
+| **A-31** | Origem do CNPJ na desambiguação de contrato (resolve P-09, substitui A-21) | O CNPJ vem de um **campo customizado do próprio chamado no Tomticket** ("CNPJ"), lido do mesmo payload que já traz `tipo_de_lancamento` e "Mês Referente" — **não** de extração de PDF via Marker. Elimina a interface `INotaCnpjExtractor`/`MockNotaCnpjExtractor` e a flag `CNPJ_EXTRACTOR`. Sem valor no campo → tratamento manual (mesma regra anterior). | `03` §3.1, `03` §7 |
 
 ## 3. Decisões ainda a confirmar
 
@@ -108,6 +109,7 @@ status: rastreador
 | 2026-07-17 | A-27 | Coluna **Responsável Legal** nas Mensagens passa a exibir a **pessoa** (não a razão social); campo da Tabela de Alerta renomeado `nome` → **`responsavel_legal`**. Resolve **D-14**. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-28 | App será publicado **no SharePoint como iframe**; **identidade e controle de acesso vêm do SharePoint/Entra ID**. Resolve a direção de **R-04** do módulo de Recesso; abre **P-11..P-16** em `18`. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-29 | Frontend será **SPFx web part** (não SPA em iframe). Resolve **P-11**; converte P-12→S-06, P-13→S-09, P-14→S-02 e torna P-15 inaplicável. Backend segue a **CITY API**, que passará a validar **token de usuário RS256**. | kevin.maykel@cityinc.com.br |
+| 2026-07-29 | A-31 | CNPJ da desambiguação (cenário 2, §3.1 de `03`) vem de **campo customizado do chamado no Tomticket**, não de extração de PDF via Marker (resolve P-09, substitui A-21). | kevin.maykel@cityinc.com.br |
 
 ### Decisões substituídas (histórico)
 | ID antigo | Substituído por | O que mudou |
@@ -122,5 +124,6 @@ status: rastreador
 | D-09 | A-12 | Stack definida |
 | D-10 → A-09 | **A-17 + A-13** | E-mail via O365 **e** disparo movido do n8n para **worker Python** |
 | A-10 | **A-25** | Export de csv/xlsx/pdf → **somente Excel** |
+| A-21 | **A-31** | CNPJ via `INotaCnpjExtractor`/Marker → **campo customizado do chamado** |
 
 > Manter este registro atualizado é parte da Documentação Final (Fase 3 do roadmap `10`).

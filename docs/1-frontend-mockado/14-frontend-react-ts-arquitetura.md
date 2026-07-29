@@ -168,7 +168,7 @@ export interface AlertaRepository {
   doFornecedor(email: Email): Promise<Alerta[]>;
 }
 export interface ContratoRepository { doFornecedor(cod: CodigoEmpresa): Promise<Contrato[]>; }
-export interface ExtratorCnpjDaNota { extrair(chamado: Chamado): Promise<Cnpj | null>; }
+export interface ExtratorCnpjDaNota { extrair(chamado: Chamado): Promise<Cnpj | null>; }  // lê chamado.cnpj (A-31) — nunca PDF
 export interface ExportadorDePlanilha { exportar(planilha: Planilha): Promise<void>; }
 ```
 
@@ -177,7 +177,7 @@ export interface ExportadorDePlanilha { exportar(planilha: Planilha): Promise<vo
 | `FornecedorRepository` | `FornecedorRepositoryEmMemoria` | `FornecedorRepositoryHttp` (`/v2/notas-fiscais/fornecedores`) |
 | `ChamadoRepository` | `ChamadoRepositoryEmMemoria` | `ChamadoRepositoryHttp` (`/status`) |
 | `AlertaRepository` | `AlertaRepositoryEmMemoria` | `AlertaRepositoryHttp` (`/comunicados`) |
-| `ExtratorCnpjDaNota` | `ExtratorCnpjMock` (mapa fixo — A-21) | `ExtratorCnpjMarker` (P-09) |
+| `ExtratorCnpjDaNota` | `ExtratorCnpjMock` (mapa fixo) | `ExtratorCnpjHttp` — lê `chamado.cnpj`, campo já vindo do payload do Tomticket (A-31; **não** há adapter Marker/PDF) |
 
 > É a mesma ideia do `dataProvider.js` atual, agora **segregada por responsabilidade** (ISP) e **tipada**.
 

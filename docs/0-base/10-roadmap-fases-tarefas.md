@@ -60,7 +60,7 @@ chamado aberto (**Enviado**), finalizado (**Recebido**), com **2 chamados** (Con
 | 2.1 | **3 tabelas** SQL Server no DB City (fornecedor, fato, alerta) | `12` §2, `02` | DDLs aplicadas; unicidade `id_tomticket`; alerta `UNIQUE(email,regra,comp)` |
 | 2.2 | **Fonte HCM** → sync `FORNECEDOR` (e-mail normalizado, único) | `12` §1, `13` §1 | `FonteHCM` real (mock trocável); Lista de PJ populada |
 | 2.3 | **Integração Tomticket** (gateway; casamento por **e-mail**) + upsert por `id_tomticket` | `03`, `12` §5 | Leitura + encerramento; competência do "Mês Referente" |
-| 2.4 | **Desambiguação de contrato** (`INotaCnpjExtractor`: mock agora, Marker depois) | `13` §4, `03` §3.1 | 1 PJ × >1 contrato resolvido; sem match → tratamento manual |
+| 2.4 | **Desambiguação de contrato** (campo customizado "CNPJ" do chamado, A-31) | `13` §4, `03` §3.1 | 1 PJ × >1 contrato resolvido; sem match → tratamento manual |
 | 2.5 | **Motor de status real** + endpoints `/status`, `/status/resumo`, `/fornecedores`, `/comunicados` | `04`, `12` §3–§4 | Left Join por e-mail; sem falsos Pendentes |
 | 2.6 | **Exportação Excel** `.xlsx` (`/export`) | `07` §3, `12` §3.4 | Colunas da tabela + aba de contratos |
 | 2.7 | **Worker de alertas** (Python + Scheduler, O365) | `05-automacao-alertas.md` | Regras D-3/D/D+1/D+3 (`D` via `.env`); 2x/dia UTC-3; grava na Tabela de Alerta |

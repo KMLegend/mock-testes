@@ -70,7 +70,7 @@ Registra os contratos dos fornecedores PJ. Dita a vigência e a atividade real d
 
 > **Unicidade e Chave Composta:** A chave natural `(cod_empresa, cod_contrato)` possui **índice único filtrado** (`WHERE is_delete IS NULL`). Isso garante que um contrato soft-deleted possa ser historiado sem causar conflito de chave se for re-inserido futuramente.
 
-> **Chave de casamento com o Tomticket (A-14):** a chave é o **e-mail** (não há chave de fallback fixa). Normalizar trim + lowercase dos dois lados. O **CNPJ** é usado apenas como **desambiguador** (extraído do PDF via Marker) quando a pessoa tem **mais de um contrato** — ver `03-integracao-tomticket.md` §3.1. O CNPJ segue registrado no cadastro (origem HCM) para relatórios/export.
+> **Chave de casamento com o Tomticket (A-14):** a chave é o **e-mail** (não há chave de fallback fixa). Normalizar trim + lowercase dos dois lados. O **CNPJ** é usado apenas como **desambiguador** (campo customizado "CNPJ" do próprio chamado no Tomticket, A-31) quando a pessoa tem **mais de um contrato** — ver `03-integracao-tomticket.md` §3.1. O CNPJ segue registrado no cadastro (origem HCM) para relatórios/export.
 
 ## 3. Tabela Fato — `APP.TB_GER_NF_PJ_RECEPCAO`
 
@@ -83,7 +83,7 @@ Registra cada NF/chamado do Tomticket.
 | `numero_chamado` | string | Sim | `protocol` (número exibido) |
 | `nome` | string | Sim | Nome do solicitante (snapshot) |
 | `email` | string | Sim | **Chave de casamento** com a Lista de PJ (A-14) |
-| `cnpj` | string (14) | Não | Preenchido no casamento; via Marker no cenário 2 (`03` §3.1) |
+| `cnpj` | string (14) | Não | Preenchido no casamento; lido do campo customizado do chamado no cenário 2 (`03` §3.1, A-31) |
 | `assunto` | string | Não | `subject` |
 | `data_abertura` | datetime | Sim | `creation_date` |
 | `data_finalizacao` | datetime | Não | `end_date` (NULL enquanto aberto) |
