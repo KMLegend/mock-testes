@@ -81,6 +81,14 @@ O motor (`02` §2/§4) gera automáticos com **id determinístico** — reproces
 | Rescisão contratual | `auto-rescisao-<codContrato>` | 1 quando a vigência expira (`+2,5` se ≥15 dias, senão `+0`) |
 | Encerramento | `auto-zeramento-<codContrato>` | 1 débito que zera o saldo remanescente do contrato |
 
+> **Contrato que volta a ficar vigente (reativação ou `dataFim` estendida).** Se a rescisão/encerramento
+> já foram gravados e uma nova carga (planilha/HCM) faz o contrato voltar a `estaVigente(hoje) = true`
+> (reativação do soft-delete, ou `dataFim` adiada), o motor **descarta** as duas ocorrências antigas
+> (`auto-rescisao-*` e `auto-zeramento-*`) antes de recalcular — senão o saldo ficaria zerado para
+> sempre num contrato que voltou a acumular. Isso não é um "estorno" (R-07): é o motor tratando as
+> duas ocorrências como **transitórias**, recriadas deterministicamente sempre que a vigência expira de
+> novo. Replicar esse descarte no backend (não é idempotência simples — é invalidação condicional).
+
 ## 4. Coleção — `ExtratoDeRecesso`
 
 ```ts

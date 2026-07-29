@@ -22,7 +22,8 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
   if (!linha) return null;
 
   const { contrato, fornecedor, extrato } = linha;
-  const linhas = extrato.comSaldoCorrente();
+  // Mais recente primeiro — mesmo saldo de comSaldoCorrente(), só a ordem de exibição muda.
+  const linhas = extrato.comSaldoCorrenteParaExibicao();
 
   return (
     <div
@@ -36,7 +37,8 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
           <button className={styles.fechar} onClick={onFechar} aria-label="Fechar">&times;</button>
         </header>
 
-        <div className={styles.corpo}>
+        {/* Bloco fixo — fora da área de rolagem do extrato, sempre visível junto ao cabeçalho. */}
+        <div className={styles.fixoTopo}>
           <div className={styles.identificacao}>
             <p><strong>Razão Social:</strong> {fornecedor.empresa}</p>
             <p><strong>Contrato:</strong> {contrato.codContrato}</p>
@@ -47,10 +49,13 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
             <span className={styles.saldoRotulo}>Saldo Atual</span>
             <span className={styles.saldoValor}>{extrato.saldoAtual().paraExibicao()}</span>
             <span className={styles.saldoBase} id="dia-mes-base">
-              base {contrato.diaEMesBase()}
+              <span className={styles.saldoRotulo}>base</span>
+              <span className={styles.saldoValor}>{contrato.diaEMesBase()}</span>
             </span>
           </div>
+        </div>
 
+        <div className={styles.corpo}>
           <div className={styles.responsivo}>
             <table className={styles.tabela} id="tabela-extrato">
               <thead>
@@ -92,14 +97,17 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
           {extrato.vazio() && (
             <p className={styles.vazio}>Nenhuma ocorrência registrada para este contrato.</p>
           )}
+        </div>
 
+        {/* Footer fixo — fora da área de rolagem do extrato, sempre visível (docs/1-frontend-mockado/recesso/04 §5). */}
+        <footer className={styles.rodape}>
           <h3 className={styles.tituloFormulario}>Nova Ocorrência</h3>
           <FormularioDeOcorrencia
             desabilitado={linha.estaInativo()}
             motivo={linha.motivoDaInatividade()}
             onLancar={onLancar}
           />
-        </div>
+        </footer>
       </div>
     </div>
   );

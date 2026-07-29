@@ -157,6 +157,52 @@ associado; a área de arrastar tem fallback de clique.
 
 ---
 
+## 4.A Grade "Base de PJs Cadastrados" (abaixo da carga)
+
+Na mesma tela, abaixo das ações de carga, uma grade lista **todos os PJs** já cadastrados
+(`ItemBasePj`), com busca, filtro de status e contratos expansíveis por linha.
+
+| Coluna | Origem | Observação |
+|---|---|---|
+| **Cód.** | `Fornecedor.codEmpresa` | — |
+| **Razão Social / Nome Fantasia** | `empresa` + `apelido` (legenda) | — |
+| **Responsável Legal** | `responsavelLegal` | R-16 (mock na Fase 1) |
+| **CNPJ** | `cnpj.paraExibicao()` | — |
+| **E-mail** | `email.paraExibicao()` | — |
+| **Status** | `Fornecedor.ativo` | badge Ativo/Inativo |
+| **Contratos** | botão "▼ Ver (N)" / "▲ Ocultar (N)" | expande a tabela de contratos vinculados |
+
+### 4.A.1 Contratos vinculados (linha expandida)
+
+| Coluna | Origem | Observação |
+|---|---|---|
+| **Nº Contrato** | `codContrato` | — |
+| **Descrição / Nome** | `nomeContrato` | — |
+| **Empresa Responsável** | `nomeEmpresaResponsavel` | — |
+| **Vigência** | `dataInicio` até `dataFim` | — |
+| **Valor Mensal** | `valorMensal` | ⚠️ **oculto por padrão** — ver abaixo |
+| **Status** | `contrato.estaVigente(hoje)` | badge Ativo/Inativo, **derivado da vigência** — não é campo persistido |
+
+### 4.A.2 Valor Mensal — dado sensível, oculto até o clique
+
+`valorMensal` é informação salarial/contratual sensível. Na grade de contratos vinculados ele
+**nunca aparece em texto claro por padrão**:
+
+- Estado inicial: um botão discreto com `••••••` no lugar do valor.
+- Clique: revela o valor formatado (`R$ 5.000,00`); clique de novo oculta.
+- Estado **por linha** — revelar o contrato de um PJ não revela os demais (`useState` local ao
+  componente da linha, sem estado compartilhado).
+- Acessibilidade: `aria-pressed` reflete o estado revelado/oculto; `aria-label` e `title` trocam
+  entre "Revelar valor mensal" / "Ocultar valor mensal".
+
+> **Por que no frontend e não redação do dado no backend:** é mascaramento de **apresentação**, não
+> controle de acesso — o valor já trafega para o cliente (mock/API) como qualquer outro campo do
+> contrato. Se no futuro isso precisar ser controle de acesso de verdade (alguns perfis nunca veem o
+> valor), a decisão muda de "ocultar na UI" para "não enviar o campo" — e passa a ser uma pendência
+> de autorização (mesma família de `geral/18` P-12), não deste documento.
+
+---
+
 ## 5. Identidade visual
 
 Segue os tokens de `11-identidade-visual.md` (CSS Modules, zero HEX hardcoded). A tabela de erros usa a
@@ -185,3 +231,6 @@ mesma paleta de status já existente (vermelho de erro = `--color-danger-*`).
 - [ ] Recarregar a grade após carga aplicada.
 - [ ] Composition Root escolhe `CargaMock` (Fase 1) / `CargaHttp` (Fase 2).
 - [ ] Acesso restrito a perfil administrativo (quando a identidade existir — `geral/18`).
+- [x] Grade "Base de PJs Cadastrados" com contratos vinculados expansíveis (§4.A).
+- [x] **Valor Mensal oculto por padrão**, clique revela/oculta, estado por linha (§4.A.2).
+- [x] Status do contrato na grade derivado da **vigência** (`estaVigente(hoje)`), não persistido.

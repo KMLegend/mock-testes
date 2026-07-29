@@ -76,33 +76,87 @@ Identificação do PJ: **Razão Social**, **CNPJ**, **Responsável Legal**.
 
 | Coluna | Origem |
 |---|---|
-| **Data da Ocorrência** | `dataDaOcorrencia` (`DD/MM/AAAA`) |
 | **ID da Ocorrência** | `id` |
+| **Cálculo** | `dataDoCalculoFormatada()` (`DD/MM/AAAA`) |
+| **Competência** | `competencia.paraExibicao()` |
 | **Descrição** | `descricao` |
 | **Tipo** | `Crédito` / `Débito` — badge com token de status |
-| **Qtd** | `quantidade` (dias) |
-| **Saldo** | **saldo corrente após a linha** (`02` §3.2) |
+| **Qtd** | `quantidade` (dias, aceita fração) |
 | **Quem Lançou** | `autor` (usuário ou `SISTEMA`) |
-| **Competência** | `periodoAquisitivo.paraExibicao()` |
 
-- Ordenação **cronológica ascendente** — o saldo corrente só faz sentido nessa ordem.
-  Se houver ordenação por outras colunas, a coluna **Saldo deve ser ocultada ou congelada**, pois
-  "saldo acumulado" fora da ordem cronológica é um número sem significado (**R-17**).
+> **Coluna Saldo removida da grade.** O saldo corrente por linha existe internamente
+> (`ExtratoDeRecesso.comSaldoCorrente()`, `02` §3.2) mas não é mais renderizado como coluna — só o
+> **Saldo Atual** (§4.3) é exibido, fora da grade.
+
+### 4.2.1 Ordenação de exibição — mais recente primeiro
+
+A grade é exibida **do lançamento mais recente para o mais antigo** (ordem decrescente por data de
+cálculo). Isso é **só de exibição**: o cálculo do saldo corrente continua obrigatoriamente
+**cronológico ascendente** (`02` §3.2) — inverter a ordem de cálculo quebraria o running balance.
+
+> **Implementação:** `ExtratoDeRecesso.comSaldoCorrenteParaExibicao()` calcula o saldo em ordem
+> ascendente (mesmo algoritmo de `comSaldoCorrente()`) e só depois reverte a lista para exibição.
+> **Nunca** recalcular saldo sobre uma lista já invertida — o saldo de uma linha é sempre "o
+> acumulado até ali", que só faz sentido andando do mais antigo para o mais novo.
+
 - Créditos automáticos devem ser **visualmente distinguíveis** (autor `SISTEMA`).
 
-### 4.3 Saldo Atual — fora da grade
-Exibir com destaque (fora da tabela), ex. no topo/rodapé do modal:
+### 4.3 Saldo Atual — fora da grade, em bloco fixo
+
+Exibir com destaque (fora da tabela), no **bloco fixo do topo** (ver §4.4/§5.0), nunca dentro da
+área que rola:
 
 ```
-Saldo Atual:  80 dias
+SALDO ATUAL   30 dias   |   base 22/07
 ```
+
 Deve ser **idêntico** ao saldo da última linha (invariante de `02` §5).
 
+- **"base" e a data (`22/07`) usam os MESMOS estilos de "SALDO ATUAL" e "30 dias"** — o rótulo
+  (`base`) no tamanho/peso do rótulo do saldo, e o dia/mês (`22/07`) no tamanho/peso do valor do
+  saldo. Não é um detalhe secundário em fonte pequena ao lado: é um segundo par
+  rótulo+valor, visualmente no mesmo nível de importância que o Saldo Atual, só separado por uma
+  borda vertical.
+- Implementação: os `<span>` de "base" e do dia/mês reutilizam as **mesmas classes CSS**
+  (`.saldoRotulo`, `.saldoValor`) que "SALDO ATUAL"/"30 dias" — não classes novas com valores
+  redigitados. Isso evita que os dois pares divirjam de tamanho numa alteração futura de tema.
+
 ### 4.4 Ações
-- **Nova Ocorrência** (§5).
+- **Nova Ocorrência** (§5) — **footer fixo**, fora da área de rolagem da grade (ver §5.0).
 - Fechar no **X**, **clique fora** e **ESC** (mesmo padrão do modal de mensagens, `docs/07` §2.2).
 
 ## 5. Formulário de nova ocorrência
+
+### 5.0 Layout do modal — três zonas, só a grade rola
+
+O modal tem **três blocos fixos** e **uma única área rolável** (a grade de ocorrências). Nem a
+identificação/saldo nem o formulário de lançamento rolam — só a tabela de ocorrências no meio:
+
+```
+┌─────────────────────────────────────────┐
+│ Extrato de Recesso                    × │  ← cabeçalho FIXO (.cabecalho)
+├─────────────────────────────────────────┤
+│ Razão Social · Contrato · Empresa        │
+│ SALDO ATUAL  30 dias  |  base 22/07      │  ← bloco FIXO (.fixoTopo)
+├─────────────────────────────────────────┤
+│ ┌───────────────────────────────────┐   │
+│ │ grade de ocorrências (scroll)      │   │  ← única área ROLÁVEL (.corpo)
+│ └───────────────────────────────────┘   │
+├─────────────────────────────────────────┤
+│ Nova Ocorrência                          │  ← footer FIXO (.rodape)
+│ [Data] [Descrição] [Tipo] [Qtd] [Lançar] │
+└─────────────────────────────────────────┘
+```
+
+- **`.fixoTopo`** (identificação do PJ/contrato + Saldo Atual) fica **entre** o cabeçalho e a área
+  rolável, congelado igual ao cabeçalho — não é mais parte do `.corpo` que rola.
+- **`.corpo`** agora contém **só** a tabela de ocorrências; é o único elemento com `overflow-y: auto`.
+- **`.rodape`** (`Nova Ocorrência` + formulário) continua fixo na base, como já documentado.
+- Motivo da mudança: com a grade extensa (dezenas de créditos mensais desde 2025), rolar a tabela
+  escondia o Saldo Atual — que é justamente o número que a pessoa quer comparar enquanto navega
+  pelo histórico. Congelado, ele fica sempre visível junto com o formulário de lançamento.
+- Motivo: com dezenas de créditos mensais acumulados (o motor gera um por mês desde 2025), o
+  formulário ficava fora da tela sem rolar até o fim; como footer fixo, está sempre à mão.
 
 | Campo | Tipo | Regra |
 |---|---|---|

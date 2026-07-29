@@ -39,6 +39,15 @@ export class ExtratoDeRecesso {
     });
   }
 
+  /**
+   * Mesmo running balance de `comSaldoCorrente()` (o saldo é sempre calculado em ordem
+   * cronológica ascendente), só que a lista é devolvida do mais recente para o mais antigo —
+   * uso exclusivo de EXIBIÇÃO. Nunca recalcular saldo sobre o resultado desta chamada.
+   */
+  comSaldoCorrenteParaExibicao(): readonly LinhaDeExtrato[] {
+    return [...this.comSaldoCorrente()].reverse();
+  }
+
   /** Invariante: igual ao saldo da última linha de comSaldoCorrente(). */
   saldoAtual(): SaldoDeDias {
     return this.ocorrencias.reduce(

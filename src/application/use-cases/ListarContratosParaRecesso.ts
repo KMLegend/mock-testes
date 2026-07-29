@@ -59,9 +59,9 @@ export class ListarContratosParaRecesso {
 
     // Se o contrato está vigente, remove qualquer rescisão/zeramento automático legado do extrato
     if (contrato.estaVigente(hoje)) {
-      const semEncerramentos = extratoDoContrato.paraArray().filter((o) => (
-        o.id !== `auto-rescisao-${contrato.identificador()}` &&
-        o.id !== `auto-zeramento-${contrato.identificador()}`
+      const semEncerramentos = extratoDoContrato.paraArray().filter((ocorrencia) => (
+        ocorrencia.id !== `auto-rescisao-${contrato.identificador()}` &&
+        ocorrencia.id !== `auto-zeramento-${contrato.identificador()}`
       ));
       extratoDoContrato = new ExtratoDeRecesso(semEncerramentos);
     }

@@ -1,10 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './TabelaBaseDePjs.module.css';
 import { ItemBasePj } from '../../../application/read-models/ItemBasePj';
 
 function formatarMoeda(valor: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 }
+
+/**
+ * Valor mensal é dado sensível: some por padrão e só some ao clicar (docs/1-frontend-mockado/21).
+ * Estado local por linha — revelar um contrato não revela os demais.
+ */
+const ValorMensalOculto: React.FC<{ valor: number }> = ({ valor }) => {
+  const [revelado, setRevelado] = useState(false);
+  return (
+    <button
+      type="button"
+      className={styles.botaoRevelarValor}
+      onClick={() => setRevelado((atual) => !atual)}
+      aria-pressed={revelado}
+      aria-label={revelado ? 'Ocultar valor mensal' : 'Revelar valor mensal'}
+      title={revelado ? 'Clique para ocultar' : 'Clique para revelar'}
+    >
+      {revelado ? formatarMoeda(valor) : '••••••'}
+    </button>
+  );
+};
 
 /** Contratos vinculados do PJ. Coluna Status vem da VIGÊNCIA de cada contrato. */
 const DetalhesDosContratos: React.FC<{ item: ItemBasePj; hoje: Date }> = ({ item, hoje }) => (
@@ -35,7 +55,7 @@ const DetalhesDosContratos: React.FC<{ item: ItemBasePj; hoje: Date }> = ({ item
                     {contrato.dataInicio.paraFormatadoCurto()} até{' '}
                     {contrato.dataFim.paraFormatadoCurto()}
                   </td>
-                  <td>{formatarMoeda(contrato.valorMensal)}</td>
+                  <td><ValorMensalOculto valor={contrato.valorMensal} /></td>
                   <td>
                     <span className={`${styles.badge} ${ativo ? styles.badgeAtivo : styles.badgeInativo}`}>
                       {ativo ? 'Ativo' : 'Inativo'}

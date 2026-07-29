@@ -25,7 +25,22 @@
   color: var(--color-text-header); font-size: 1.6rem; line-height: 1; cursor: pointer;
 }
 
-.corpo { padding: 20px 24px 24px; overflow-y: auto; }
+/* Bloco fixo: identificação + Saldo Atual. Congelado como o cabeçalho — não rola com a grade. */
+.fixoTopo {
+  flex-shrink: 0;
+  padding: 18px 24px 0;
+  background-color: var(--color-card-bg);
+}
+
+.corpo { padding: 12px 24px 24px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+
+/* Footer fixo: sempre visível, independente da rolagem do extrato acima. */
+.rodape {
+  flex-shrink: 0;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-card-bg);
+}
 
 .identificacao {
   display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 16px;
@@ -50,8 +65,8 @@
 }
 
 .saldoBase {
-  font-size: 0.82rem; color: var(--color-text-muted);
-  padding-left: 12px; border-left: 1px solid var(--color-border);
+  display: flex; align-items: baseline; gap: 12px;
+  padding-left: 18px; border-left: 1px solid var(--color-border);
 }
 
 .responsivo { width: 100%; overflow-x: auto; }
@@ -81,7 +96,7 @@
 
 .tituloFormulario {
   font-family: var(--font-title); font-weight: 600; font-size: 0.95rem;
-  margin: 22px 0 12px; color: var(--color-text);
+  margin: 0 0 12px; color: var(--color-text);
 }
 
 .formulario {

@@ -263,6 +263,33 @@
   font-style: italic;
 }
 
+/* Valor mensal é dado sensível: oculto por padrão, clique para revelar. */
+.botaoRevelarValor {
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 3px 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s ease;
+}
+
+.botaoRevelarValor:hover {
+  background-color: var(--color-selection-bg);
+  color: var(--color-text);
+  border-style: solid;
+}
+
+.botaoRevelarValor[aria-pressed='true'] {
+  border-style: solid;
+  color: var(--color-text);
+  letter-spacing: normal;
+  font-family: var(--font-text);
+}
+
 .vazio {
   text-align: center;
   padding: 32px 16px;

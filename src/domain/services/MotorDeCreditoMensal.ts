@@ -1,16 +1,19 @@
 import { Contrato } from '../entities/Contrato';
 import { OcorrenciaDeRecesso } from '../entities/OcorrenciaDeRecesso';
 import { ExtratoDeRecesso } from '../collections/ExtratoDeRecesso';
-import { AutorDoLancamento } from '../value-objects/AutorDoLancamento';
 import { CompetenciaDeRecesso } from '../value-objects/CompetenciaDeRecesso';
-import { OrigemDaOcorrencia } from '../value-objects/OrigemDaOcorrencia';
-import { QuantidadeDeDias } from '../value-objects/QuantidadeDeDias';
-import { TipoOcorrencia } from '../value-objects/TipoOcorrencia';
+import { FabricaDeOcorrenciasAutomaticas } from './FabricaDeOcorrenciasAutomaticas';
 
 /** Direito mensal de recesso de um contrato: 2,5 dias por mês de vigência. */
 export const CREDITO_MENSAL_BASE = 2.5;
 
 const LIMITE_DE_COMPETENCIAS = 600; // guarda contra laço infinito por data inválida
+const MILISSEGUNDOS_POR_DIA = 1000 * 60 * 60 * 24;
+
+function ehEncerramentoDe(contrato: Contrato, ocorrencia: OcorrenciaDeRecesso): boolean {
+  return ocorrencia.id === `auto-rescisao-${contrato.identificador()}`
+    || ocorrencia.id === `auto-zeramento-${contrato.identificador()}`;
+}
 
 /**
  * Acumula o recesso mês a mês, por CONTRATO: a cada aniversário mensal da data de
@@ -19,24 +22,18 @@ const LIMITE_DE_COMPETENCIAS = 600; // guarda contra laço infinito por data inv
  * IDEMPOTENTE: nunca gera crédito para uma competência que já possui crédito automático.
  */
 export class MotorDeCreditoMensal {
+  private readonly fabrica = new FabricaDeOcorrenciasAutomaticas();
+
   constructor(private readonly agora: () => Date = () => new Date()) {}
 
-  gerarPara(
-    contrato: Contrato,
-    extratoExistente: ExtratoDeRecesso
-  ): readonly OcorrenciaDeRecesso[] {
+  gerarPara(contrato: Contrato, extratoExistente: ExtratoDeRecesso): readonly OcorrenciaDeRecesso[] {
     const limpo = this.sanitizarExtratoParaContratoVigente(contrato, extratoExistente);
 
     const mensalidades = this.competenciasVencidas(contrato)
       .filter((competencia) => !limpo.temCreditoAutomaticoDe(competencia))
-      .map((competencia) => this.criarCredito(contrato, competencia));
+      .map((competencia) => this.fabrica.credito(contrato, competencia, CREDITO_MENSAL_BASE));
 
-    const encerramentos = this.gerarEncerramentoSeVigenciaExpirou(
-      contrato,
-      limpo,
-      mensalidades
-    );
-
+    const encerramentos = this.gerarEncerramentoSeVigenciaExpirou(contrato, limpo, mensalidades);
     return [...mensalidades, ...encerramentos];
   }
 
@@ -46,14 +43,11 @@ export class MotorDeCreditoMensal {
     extratoExistente: ExtratoDeRecesso
   ): ExtratoDeRecesso {
     const fimDaVigencia = contrato.dataFim.paraDataLocal();
-    if (this.agora().getTime() < fimDaVigencia.getTime()) {
-      const semEncerramentos = extratoExistente.paraArray().filter((ocorrencia) => (
-        ocorrencia.id !== `auto-rescisao-${contrato.identificador()}` &&
-        ocorrencia.id !== `auto-zeramento-${contrato.identificador()}`
-      ));
-      return new ExtratoDeRecesso(semEncerramentos);
-    }
-    return extratoExistente;
+    if (this.agora().getTime() >= fimDaVigencia.getTime()) return extratoExistente;
+
+    const semEncerramentos = extratoExistente.paraArray()
+      .filter((ocorrencia) => !ehEncerramentoDe(contrato, ocorrencia));
+    return new ExtratoDeRecesso(semEncerramentos);
   }
 
   /** Aniversários mensais já completados a partir de 2025, dentro da vigência e até hoje. */
@@ -118,21 +112,9 @@ export class MotorDeCreditoMensal {
     const id = `auto-rescisao-${contrato.identificador()}`;
     if (extratoExistente.paraArray().some((ocorrencia) => ocorrencia.id === id)) return [];
 
-    const fimDaVigencia = contrato.dataFim.paraDataLocal();
     const dias = this.diasDesdeUltimoCalculo(contrato, extratoExistente, novasMensalidades);
     const ganhaCredito = dias >= 15;
-    return [new OcorrenciaDeRecesso({
-      id,
-      codContrato: contrato.identificador(),
-      dataDoCalculo: fimDaVigencia,
-      competencia: CompetenciaDeRecesso.contendo(fimDaVigencia, contrato.dataInicio.paraDataLocal()),
-      descricao: `Rescisão contratual (+${ganhaCredito ? '2,5' : '0'} crédito) — ${dias} dia(s)`,
-      tipo: TipoOcorrencia.credito(),
-      quantidade: ganhaCredito ? QuantidadeDeDias.de(CREDITO_MENSAL_BASE) : QuantidadeDeDias.nenhuma(),
-      autor: AutorDoLancamento.sistema(),
-      origem: OrigemDaOcorrencia.automatico(),
-      criadoEm: fimDaVigencia
-    })];
+    return [this.fabrica.rescisao(contrato, { dias, ganhaCredito, valorCredito: CREDITO_MENSAL_BASE })];
   }
 
   /** Dias corridos entre o último cálculo (ou o marco inicial) e o fim da vigência. */
@@ -147,7 +129,7 @@ export class MotorDeCreditoMensal {
       ? Math.max(...todas.map((ocorrencia) => ocorrencia.dataDoCalculo.getTime()))
       : inicioMs;
     const diffMs = contrato.dataFim.paraDataLocal().getTime() - ultimaMs;
-    return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    return Math.max(0, Math.floor(diffMs / MILISSEGUNDOS_POR_DIA));
   }
 
   /** Débito que zera o saldo remanescente do contrato encerrado. */
@@ -162,39 +144,12 @@ export class MotorDeCreditoMensal {
     const saldo = extratoExistente.acrescentar(ocorrenciasAteRescisao).saldoAtual().obterValor();
     if (saldo <= 0) return [];
 
-    const fimDaVigencia = contrato.dataFim.paraDataLocal();
-    return [new OcorrenciaDeRecesso({
-      id,
-      codContrato: contrato.identificador(),
-      dataDoCalculo: fimDaVigencia,
-      competencia: CompetenciaDeRecesso.contendo(fimDaVigencia, contrato.dataInicio.paraDataLocal()),
-      descricao: 'Encerramento de contrato (zera o saldo atual)',
-      tipo: TipoOcorrencia.debito(),
-      quantidade: QuantidadeDeDias.de(saldo),
-      autor: AutorDoLancamento.sistema(),
-      origem: OrigemDaOcorrencia.automatico(),
-      criadoEm: new Date(fimDaVigencia.getTime() + 1000)
-    })];
+    return [this.fabrica.zeramento(contrato, saldo)];
   }
 
   private dataLimite(contrato: Contrato): Date {
     const fimDaVigencia = contrato.dataFim.paraDataLocal();
     const hoje = this.agora();
     return fimDaVigencia < hoje ? fimDaVigencia : hoje;
-  }
-
-  private criarCredito(contrato: Contrato, competencia: CompetenciaDeRecesso): OcorrenciaDeRecesso {
-    return new OcorrenciaDeRecesso({
-      id: `auto-${contrato.identificador()}-${competencia.identificador()}`,
-      codContrato: contrato.identificador(),
-      dataDoCalculo: competencia.data(),
-      competencia,
-      descricao: 'Crédito mensal de recesso',
-      tipo: TipoOcorrencia.credito(),
-      quantidade: QuantidadeDeDias.de(CREDITO_MENSAL_BASE),
-      autor: AutorDoLancamento.sistema(),
-      origem: OrigemDaOcorrencia.automatico(),
-      criadoEm: competencia.data()
-    });
   }
 }
