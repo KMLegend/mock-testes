@@ -416,12 +416,12 @@ FonteDeCadastro.obter()  →  LeitorDeCadastro.ler()  →  LoteDeCadastro (domí
 Regras da ingestão (herdadas de `06` §9 / `12`):
 1. **E-mail normalizado** (`trim`+`lower`) na escrita; único no cadastro (A-14).
 2. **Upsert inteligente de cadastro:**
-   - **Aba Fornecedores (acumulativa):** upsert de dados cadastrais. **NUNCA realiza DELETE** (fornecedores ausentes permanecem no cadastro).
-   - **Aba Contratos (ciclo de vida):** upsert de contratos. Contratos ausentes da nova carga recebem **soft delete (`is_delete = <timestamp>`)**. Contratos previamente soft-deleted que constem na nova carga são **reativados (`is_delete = NULL`)**.
+    - **Aba Fornecedores (acumulativa):** upsert de dados cadastrais. **NUNCA realiza DELETE** (fornecedores ausentes permanecem no cadastro).
+    - **Aba Contratos (ciclo de vida):** upsert de contratos. Contratos ausentes da nova carga recebem **soft delete (`is_delete = True`)**. Contratos previamente soft-deleted que constem na nova carga são **reativados (`is_delete = False`)**.
 3. **Status de atividade do PJ** derivado automaticamente da existência de pelo menos 1 contrato não-deletado em vigência (`[dataInicio, dataFim]`).
 4. **Transação** por lote; falha de validação **aborta o lote** (não grava meia-sincronização).
 
-> DDL: a tabela `APP.TB_GER_NF_PJ_FORNECEDOR` (acumulativa) e `APP.TB_GER_NF_PJ_CONTRATO` (com `is_delete` e índice único filtrado em `cod_empresa + cod_contrato WHERE is_delete IS NULL`) estão especificadas em `12` §2.
+> DDL: a tabela `APP.TB_DPE_GPJ_PRESTADOR` (acumulativa) e `APP.TB_DPE_GPJ_CONTRATO` (com `is_delete` e índice único filtrado em `cod_empresa + cod_contrato WHERE is_delete = 0`) estão especificadas em `12` §2.
 
 ### 8.1 Carga manual pelo usuário — upload/download (Opção A)
 

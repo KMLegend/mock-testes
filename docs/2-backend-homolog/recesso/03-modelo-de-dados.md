@@ -109,11 +109,11 @@ export class ExtratoDeRecesso {
 
 ## 5. Tabela no DB City (Fase 2) — *nome proposto*
 
-Segue as convenções da CITY API (`../backend/06` §10, `../backend/12` §2): schema `APP`, `is_delete`, `data_inclusao`.
+Segue as convenções da CITY API (`../backend/06` §10, `../backend/12` §2): schema `APP`, `is_delete` (BIT), `data_inclusao`.
 
 ```sql
-CREATE TABLE APP.TB_GER_NF_PJ_RECESSO_OCORRENCIA (
-    id_ocorrencia    INT IDENTITY(1,1) NOT NULL,
+CREATE TABLE APP.TB_DPE_GPJ_RECESSO_MOVIMENTO (
+    id_ocorrencia    INT IDENTITY(1,1) NOT NULL,    -- representa o identificador do movimento
     cod_empresa      VARCHAR(20)  NOT NULL,        -- PJ (FK lógica → FORNECEDOR)
     cod_contrato     VARCHAR(50)  NOT NULL,        -- contrato (numerado por empresa: "101","102")
     data_calculo     DATE         NOT NULL,        -- quando foi calculado/registrado
@@ -124,22 +124,23 @@ CREATE TABLE APP.TB_GER_NF_PJ_RECESSO_OCORRENCIA (
     origem           VARCHAR(12)  NOT NULL,        -- 'MANUAL' | 'AUTOMATICO'
     chave_auto       VARCHAR(120) NULL,            -- id determinístico (só AUTOMATICO) — idempotência
     lancado_por      VARCHAR(255) NOT NULL,        -- usuário ou 'SISTEMA'
-    is_delete        VARCHAR(50),
-    data_inclusao    DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT PK_Recesso_Ocorrencia PRIMARY KEY (id_ocorrencia),
-    CONSTRAINT CK_Recesso_Qtd    CHECK (quantidade_dias >= 0),
-    CONSTRAINT CK_Recesso_Tipo   CHECK (tipo IN ('Credito','Debito')),
-    CONSTRAINT CK_Recesso_Origem CHECK (origem IN ('MANUAL','AUTOMATICO'))
+    is_delete        BIT DEFAULT 0,
+    data_inclusao    DATETIME2(7) CONSTRAINT DF_GPJ_RECESSO_MOVIMENTO_DATA_INCLUSAO DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_GPJ_RECESSO_MOVIMENTO PRIMARY KEY (id_ocorrencia),
+    CONSTRAINT CK_GPJ_RECESSO_MOVIMENTO_QTD    CHECK (quantidade_dias >= 0),
+    CONSTRAINT CK_GPJ_RECESSO_MOVIMENTO_TIPO   CHECK (tipo IN ('Credito','Debito')),
+    CONSTRAINT CK_GPJ_RECESSO_MOVIMENTO_ORIGEM CHECK (origem IN ('MANUAL','AUTOMATICO')),
+    CONSTRAINT FK_GPJ_RECESSO_MOVIMENTO_PRESTADOR FOREIGN KEY (cod_empresa) REFERENCES APP.TB_DPE_GPJ_PRESTADOR (cod_empresa)
 );
 
 -- IDEMPOTÊNCIA (02 §2.4): a chave determinística é única entre os AUTOMÁTICOS.
 -- Cobre crédito mensal (auto-<contrato>-<AAAAMM>), rescisão e encerramento com uma só regra.
-CREATE UNIQUE INDEX UQ_Recesso_Auto
-    ON APP.TB_GER_NF_PJ_RECESSO_OCORRENCIA (chave_auto)
-    WHERE origem = 'AUTOMATICO' AND is_delete IS NULL;
+CREATE UNIQUE INDEX UQ_GPJ_RECESSO_MOVIMENTO_AUTO
+    ON APP.TB_DPE_GPJ_RECESSO_MOVIMENTO (chave_auto)
+    WHERE origem = 'AUTOMATICO' AND is_delete = 0;
 
-CREATE INDEX IX_Recesso_Contrato
-    ON APP.TB_GER_NF_PJ_RECESSO_OCORRENCIA (cod_empresa, cod_contrato, data_calculo);
+CREATE INDEX IX_GPJ_RECESSO_MOVIMENTO_CONTRATO
+    ON APP.TB_DPE_GPJ_RECESSO_MOVIMENTO (cod_empresa, cod_contrato, data_calculo);
 ```
 
 > A constraint de idempotência é **a defesa mais importante do módulo**. Sem ela, uma reexecução do

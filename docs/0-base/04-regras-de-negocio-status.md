@@ -70,12 +70,12 @@ SELECT
     WHEN f.data_finalizacao IS NOT NULL THEN 'Recebido'
     ELSE                                     'Enviado'
   END AS status
-FROM APP.TB_GER_NF_PJ_FORNECEDOR pj
-LEFT JOIN APP.TB_GER_NF_PJ_RECEPCAO f
+FROM APP.TB_DPE_GPJ_PRESTADOR pj
+LEFT JOIN APP.TB_DPE_GPJ_RECEPCAO_NF f
        ON f.email = pj.email                     -- chave de casamento: EMAIL (trim+lowercase) — A-14
       AND f.mes_ano_referencia = :mes_ano_referencia   -- "MM-AAAA"
-      AND f.is_delete IS NULL
-WHERE pj.ativo = 1 AND pj.is_delete IS NULL
+      AND f.is_delete = 0
+WHERE pj.ativo = 1 AND pj.is_delete = 0
 ORDER BY pj.nome;
 ```
 
@@ -84,7 +84,7 @@ ORDER BY pj.nome;
 Todos estes casos fazem um PJ que **entregou** parecer **Pendente**. Prevenir e testar:
 
 1. **E-mail divergente** (risco nº 1) — caixa/espaços diferentes entre Lista de PJ e chamado (`Joao.Silva@…` × `joao.silva@…`). → **Normalizar trim + lowercase dos dois lados** (e persistir normalizado na Fato).
-2. **Filtro de competência no ON vs. WHERE** — colocar `f.mes_ano_referencia = :mes_ano_referencia` (ou `f.is_delete IS NULL`) no `WHERE` em vez do `ON` transforma o LEFT JOIN em INNER JOIN e **elimina** os Pendentes. → Manter ambos no `ON`.
+2. **Filtro de competência no ON vs. WHERE** — colocar `f.mes_ano_referencia = :mes_ano_referencia` (ou `f.is_delete = 0`) no `WHERE` em vez do `ON` transforma o LEFT JOIN em INNER JOIN e **elimina** os Pendentes. → Manter ambos no `ON`.
 3. **"Mês Referente" mal interpretado** — chamado existe mas foi classificado noutra competência (formato `MM-AAAA`). → Ver parser em `03` §6; validar (Tarefa 4.2).
 4. **Sync desatualizado** — o chamado existe no Tomticket mas ainda não foi sincronizado. → Rodar o cálculo de status **após** o sync.
 5. **PJ inativo/ativo** — considerar apenas `ativo = 1`, sem excluir PJ que estava ativo no período histórico consultado.

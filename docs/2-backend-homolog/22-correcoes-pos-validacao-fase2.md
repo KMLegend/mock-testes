@@ -163,19 +163,19 @@ filtro usado é:
 WHERE (is_delete IS NULL OR is_delete != '_deleted')
 ```
 
-`is_delete` guarda um **timestamp ISO** quando soft-deletado (`is_delete = datetime.now().isoformat()`,
-ver `cadastro.py` linha 152/146), **nunca** a string literal `'_deleted'`. Logo,
-`is_delete != '_deleted'` é **sempre verdadeiro** para qualquer timestamp não-nulo — a cláusula
+`is_delete` guarda um **booleano True** quando soft-deletado (`is_delete = True`,
+ver `prestadores.py`), **nunca** a string literal `'_deleted'`. Logo,
+`is_delete != '_deleted'` é **sempre verdadeiro** para qualquer valor — a cláusula
 inteira equivale a `WHERE TRUE`, e um contrato ou fornecedor soft-deletado **continua aparecendo**
 em toda consulta que usa esse padrão: no Left Join de status (`status_service.py`), e na
 elegibilidade de alertas (`scheduler.py`).
 
-A doc normativa (`12` §4, `06` §9.3) é direta: `WHERE is_delete IS NULL`.
+A doc normativa (`12` §4, `06` §9.3) é direta: `WHERE is_delete = 0`.
 
 ### 2.2 O fix
 
 Substituir, nos dois arquivos (6 ocorrências), `(x.is_delete IS NULL OR x.is_delete != '_deleted')`
-por `x.is_delete IS NULL`:
+por `x.is_delete = 0`:
 
 ```sql
 -- status_service.py — antes (3 ocorrências)
@@ -184,9 +184,9 @@ WHERE (pj.is_delete IS NULL OR pj.is_delete != '_deleted')
 AND (c.is_delete IS NULL OR c.is_delete != '_deleted')
 
 -- depois
-AND f.is_delete IS NULL
-WHERE pj.is_delete IS NULL
-AND c.is_delete IS NULL
+AND f.is_delete = 0
+WHERE pj.is_delete = 0
+AND c.is_delete = 0
 ```
 
 ```sql
@@ -196,16 +196,16 @@ AND (c.is_delete IS NULL OR c.is_delete != '_deleted')
 AND (r.is_delete IS NULL OR r.is_delete != '_deleted')
 
 -- depois
-WHERE pj.is_delete IS NULL
-AND c.is_delete IS NULL
-AND r.is_delete IS NULL
+WHERE pj.is_delete = 0
+AND c.is_delete = 0
+AND r.is_delete = 0
 ```
 
 ### 2.3 Checklist
 
 - [ ] Substituir as 6 ocorrências (3 + 3) nos dois arquivos.
 - [ ] Adicionar um teste que **falharia** com o bug antigo: criar um fornecedor/contrato com
-      `is_delete` preenchido (timestamp real, não a string `'_deleted'`) e afirmar que ele **não**
+      `is_delete` definido como True e afirmar que ele **não**
       aparece no resultado de `obter_status_competencia` / `executar_processamento_alertas`. Os
       testes atuais (`test_notas_fiscais.py`, `test_worker.py`) não cobrem isso — todos os mocks
       usados não têm nenhuma linha soft-deletada no dataset.
@@ -426,18 +426,114 @@ ALERTAS_REMETENTE=notas-pj@cityinc.com.br   # NOVO — caixa remetente Graph, ve
 
 ---
 
-## 5. Resumo executivo (para quem só quer a lista)
+## 6. Adendo (2026-07-29) — validação da aplicação em `api-city` e 2 pendências novas
 
-| # | Item | Severidade | Bloqueia o quê |
+> **Contexto.** Uma sessão separada aplicou as correções deste documento contra `api-city`
+> (branch `homolog`). Esta seção é o resultado de **validar esse trabalho** linha a linha, não um
+> resumo do que foi pedido — 3 dos 4 itens originais (§1–§4) estão corretos e testados; restam
+> **duas pendências reais**, uma delas um bug que **nunca chegou a entrar** neste documento (falha
+> minha na primeira redação, não do agente que implementou).
+
+### 6.1 O que já está correto (não refazer)
+
+| Item (deste doc) | Status em `api-city` | Evidência |
+|---|---|---|
+| §2 — Filtro `is_delete` (6×) | ✅ Corrigido | `notas_fiscais_status_service.py` e `alertas_scheduler.py`: todas as 6 ocorrências são `IS NULL` puro |
+| §3 — Tudo-ou-nada na importação | ✅ Corrigido | `notas_fiscais_base_pj.py`: fase de validação não grava nada; `test_importar_cadastro_tudo_ou_nada_com_erro_nao_grava` cobre o cenário |
+| §4 — SMTP → Graph | ✅ Corrigido | `graph_email_sender.py`: `GraphEmailSender` sem fallback silencioso, falha explícita via `EnvioFalhou`; `test_executar_processamento_alertas_falha_de_envio_nao_grava_banco` prova que falha não grava falso-positivo |
+| §1 — Rename `status_service.py` → `notas_fiscais_status_service.py` | ✅ Corrigido | Arquivo e imports em `dependencies.py` já refletem o nome novo |
+| §1 — Rename `worker/scheduler.py` → `workers/alertas_scheduler.py` | ✅ Corrigido | `app/workers/alertas_scheduler.py` existe; `app/worker/` (singular) não existe mais |
+
+Suíte completa rodada de novo, independentemente: `pytest tests/test_notas_fiscais.py
+tests/test_notas_fiscais_base_pj.py tests/test_alertas_scheduler.py -v` → **9 passed**.
+
+### 6.2 Pendência 1 — nomenclatura ficou na versão intermediária, não na final
+
+Este documento (§1) passou por **duas** revisões de nome antes de estabilizar (histórico completo em
+`19` §8.1 e neste doc §1.1–§1.3): `cadastro.py`/`/v2/cadastro` → (revisão 1) `notas_fiscais_base_pj.py`/
+`/v2/notas-fiscais/base-pj` → (revisão 2, **final**) `prestadores.py`/`/v2/prestadores`, esta última
+motivada pela observação de que a base de prestadores é um **agregado raiz compartilhado** por
+notas-fiscais e recesso, não uma propriedade de notas-fiscais.
+
+O trabalho aplicado em `api-city` implementou a **revisão 1** (`app/api/v2/notas_fiscais_base_pj.py`,
+prefixo `/v2/notas-fiscais/base-pj`) — provavelmente porque a implementação começou antes da revisão 2
+ser commitada nos docs. **Isso não é um bug de comportamento** (a rota funciona, os testes passam),
+é uma **dívida de nomenclatura** que, se não for fechada agora, vira a mesma armadilha que motivou
+todo este documento: o próximo agente lê `api-city` sem saber que o nome já mudou de novo.
+
+**Correção — renomear em `api-city`:**
+
+| # | Nome atual (revisão 1) | Nome final (revisão 2) |
+|---|---|---|
+| 1 | `app/api/v2/notas_fiscais_base_pj.py` | `app/api/v2/prestadores.py` |
+| 2 | rota `/v2/notas-fiscais/base-pj/*` | `/v2/prestadores/*` |
+| 3 | endpoint `POST /importar` | `POST /importacao` (ver árvore completa em §1.4) |
+| 4 | tag Swagger `"Notas Fiscais PJ — Base"` | `"Prestadores"` (ou `"Prestadores PJ"`) |
+| 5 | `tests/test_notas_fiscais_base_pj.py` | `tests/test_prestadores.py` |
+
+**Checklist:**
+- [ ] `git mv app/api/v2/notas_fiscais_base_pj.py app/api/v2/prestadores.py`.
+- [ ] No arquivo: renomear a função `importar_base_pj` → `importar_prestadores` (opcional, mas
+      consistente); trocar a rota do endpoint de `@router.post("/importar", ...)` para
+      `@router.post("/importacao", ...)`.
+- [ ] Em `main.py`: import `from app.api.v2 import prestadores as prestadores_v2`; trocar
+      `prefix="/v2/notas-fiscais/base-pj"` → `prefix="/v2/prestadores"`; trocar a tag.
+- [ ] `git mv tests/test_notas_fiscais_base_pj.py tests/test_prestadores.py`; ajustar os `import` e
+      as URLs chamadas nos testes (`/importar` → `/importacao`).
+- [ ] Rodar a suíte — deve continuar `9 passed` (agora com o nome/rota corretos).
+- [ ] Nenhuma mudança de comportamento é esperada — é rename + endpoint path, não lógica nova.
+
+### 6.3 Pendência 2 — envelope `accesed_by`/`accessed_by` trocado nos endpoints GET (bug novo, não estava neste doc)
+
+`docs/2-backend-homolog/06-backend-api.md` §5 é normativo e explícito: **GET usa `accesed_by`**
+(um só "s" — grafia legada intencional, não é erro de digitação a corrigir) e **mutações usam
+`accessed_by`** (dois "s"). É uma convenção estranha, mas é a que a CITY API já usa em produção —
+"seguir o existente para não quebrar contratos" (`06` §5).
+
+`app/api/v2/notas_fiscais.py` usa `"accessed_by"` (dois "s") nos **dois** endpoints GET:
+`GET /status` e `GET /status/resumo`. Isso diverge do contrato de envelope que o resto da API
+(e o próprio `12` §3.3) espera de uma rota GET.
+
+> **Por que isso não foi pego antes:** este bug foi identificado na validação original do
+> walkthrough (antes deste documento existir), mas **não entrou na lista de correções** quando o
+> documento foi escrito — omissão do autor deste doc, não do agente que implementou `api-city`. Os
+> testes (`tests/test_notas_fiscais.py`) não afirmam a chave do envelope, então não pegaram a
+> divergência.
+
+**Fix:**
+```python
+# app/api/v2/notas_fiscais.py — nos dois GET (/status e /status/resumo)
+return {
+    "status": "sucesso",
+    "version": "v2",
+    "accesed_by": token_payload.get("sub", "nf-pjs-dashboard"),   # era "accessed_by" — corrigido
+    "data": { ... }
+}
+```
+
+**Checklist:**
+- [ ] Trocar `"accessed_by"` → `"accesed_by"` nos dois `return` de `notas_fiscais.py` (GET apenas —
+      **não** mexer em nenhum endpoint de mutação, que deve continuar `accessed_by`).
+- [ ] Novo teste (ou ajuste dos existentes) em `tests/test_notas_fiscais.py`: afirmar
+      `response.json()["accesed_by"] == ...` em `test_status_endpoint_com_sucesso` e
+      `test_status_resumo_endpoint`, para que uma regressão futura seja pega automaticamente.
+- [ ] Conferir se `app/api/v2/prestadores.py` (pós-rename de §6.2) usa `accessed_by` corretamente —
+      é **mutação** (POST/GET de download conta como leitura simples, mas o `importar`/`importacao`
+      é `POST`, então segue `accessed_by`; já está certo, só confirmar que o rename não mudou isso).
+
+---
+
+## 7. Resumo executivo (para quem só quer a lista)
+
+| # | Item | Severidade | Status |
 |---|---|---|---|
-| 1 | Renomear `cadastro.py`/`/v2/cadastro` → `prestadores.py`/`/v2/prestadores` (agregado raiz, árvore §1.4) | Governança | Manutenção futura da API compartilhada |
-| 1 | Renomear `status_service.py`, `app/worker/` | Governança | Consistência de convenção |
-| 2 | Filtro `is_delete` é no-op (6×) | 🔴 Alta | Homologação — dado soft-deletado continua "ativo" em todo lugar |
-| 3 | Import não é tudo-ou-nada de fato | 🔴 Alta | Homologação — integridade de dados na carga de cadastro |
-| 4 | E-mail por SMTP em vez de Graph, com falso-positivo sem credencial | 🔴 Alta (prod) / Média (homolog) | Produção — Alertas "enviados" que nunca saíram, credencial que não existe |
+| 1 | Renomear `cadastro.py`/`/v2/cadastro` → `prestadores.py`/`/v2/prestadores` (agregado raiz, árvore §1.4) | Governança | ⚠️ Aplicado até a revisão intermediária — falta a §6.2 |
+| 1 | Renomear `status_service.py`, `app/worker/` | Governança | ✅ Feito |
+| 2 | Filtro `is_delete` é no-op (6×) | 🔴 Alta | ✅ Feito |
+| 3 | Import não é tudo-ou-nada de fato | 🔴 Alta | ✅ Feito |
+| 4 | E-mail por SMTP em vez de Graph, com falso-positivo sem credencial | 🔴 Alta (prod) / Média (homolog) | ✅ Feito |
+| 5 | Envelope `accessed_by` errado nos GET de `/status` (§6.3) | 🟡 Média | ❌ Pendente |
 
-Nenhum destes quatro pontos foi pego pela suíte de testes atual (7/7 verde) — todos os testes mockam
-o nível exatamente acima do bug, então nenhum exercita SQL real, caminho de erro da importação, ou
-envio de e-mail de verdade. **Recomendação:** os testes novos descritos em cada seção (§2.3, §3.3,
-§4.4) devem ser adicionados **junto** com o fix, não depois — são eles que provam que o defeito foi
-corrigido e evitam a regressão.
+Recomendação inalterada: cada correção nova (§6.2, §6.3) deve vir **com** o teste de regressão que
+prova o defeito — não depois. Antes desta rodada de validação, os 3 defeitos de comportamento
+originais (§2–§4) já tinham entrado corrigidos **com** teste; mantenha o padrão.
