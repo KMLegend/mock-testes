@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './components/CargaDeCadastro/CargaDeCadastro.module.css';
-import { RelatorioDaCarga } from './components/CargaDeCadastro/RelatorioDaCarga';
-import { ConfirmacaoDaCarga } from './components/CargaDeCadastro/ConfirmacaoDaCarga';
 import { TabelaBaseDePjs } from './components/CargaDeCadastro/TabelaBaseDePjs';
+import { ModalImportarPlanilha } from './components/CargaDeCadastro/ModalImportarPlanilha';
 import { ControleDaCarga } from './hooks/useCargaDeCadastro';
 import { useBaseDePjs } from './hooks/useBaseDePjs';
 
@@ -10,16 +9,9 @@ export interface ModuloCadastroProps {
   readonly controle: ControleDaCarga;
 }
 
-const OCUPADO: readonly string[] = ['analisando', 'aplicando'];
-
 export const ModuloCadastro: React.FC<ModuloCadastroProps> = ({ controle }) => {
-  const ocupado = OCUPADO.includes(controle.estado);
   const controleBaseDePjs = useBaseDePjs(controle.estado);
-
-  const aoEscolher = (evento: React.ChangeEvent<HTMLInputElement>): void => {
-    controle.selecionar(evento.target.files?.[0] ?? null);
-    evento.target.value = ''; // permite reenviar o mesmo arquivo
-  };
+  const [importarAberto, setImportarAberto] = useState(false);
 
   return (
     <section className={styles.secao} id="tab-cadastro">
@@ -41,31 +33,23 @@ export const ModuloCadastro: React.FC<ModuloCadastroProps> = ({ controle }) => {
         >
           Exportar base atual
         </button>
-        <label className={`${styles.botao} ${styles.enviar}`} id="btn-enviar-planilha">
-          {ocupado ? 'Processando...' : 'Importar planilha'}
-          <input
-            type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={aoEscolher}
-            disabled={ocupado}
-          />
-        </label>
-        {controle.nomeArquivo !== '' && <span className={styles.arquivo}>{controle.nomeArquivo}</span>}
+        <button
+          type="button"
+          className={`${styles.botao} ${styles.botaoPrimario}`}
+          onClick={() => setImportarAberto(true)}
+          id="btn-abrir-importar-planilha"
+        >
+          Importar planilha
+        </button>
       </div>
 
-      {controle.erroGeral !== '' && (
-        <p className={styles.erroGeral} role="alert">{controle.erroGeral}</p>
-      )}
-
-      {controle.relatorio && (
-        <RelatorioDaCarga relatorio={controle.relatorio} aplicado={controle.estado === 'aplicado'} />
-      )}
-
-      {controle.relatorio && controle.estado !== 'aplicado' && (
-        <ConfirmacaoDaCarga controle={controle} />
-      )}
-
       <TabelaBaseDePjs controle={controleBaseDePjs} />
+
+      <ModalImportarPlanilha
+        aberto={importarAberto}
+        controle={controle}
+        onFechar={() => setImportarAberto(false)}
+      />
     </section>
   );
 };
