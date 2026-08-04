@@ -20,12 +20,15 @@ export class ExtratoDeRecesso {
     return new ExtratoDeRecesso([]);
   }
 
-  /** Cronológica ascendente; empate resolvido por criadoEm (ordem estável). */
+  /** Cronológica ascendente; empate resolvido pelo ID. */
   ordenadoCronologicamente(): ExtratoDeRecesso {
     const ordenadas = [...this.ocorrencias].sort((a, b) => {
       const diferenca = a.dataDoCalculo.getTime() - b.dataDoCalculo.getTime();
       if (diferenca !== 0) return diferenca;
-      return a.criadoEm.getTime() - b.criadoEm.getTime();
+      
+      // Empate: resolve pelo ID. Como temos IDs numéricos do backend e
+      // IDs alfanuméricos ('auto-...') locais, usamos localeCompare numérico.
+      return a.id.localeCompare(b.id, 'pt-BR', { numeric: true });
     });
     return new ExtratoDeRecesso(ordenadas);
   }
