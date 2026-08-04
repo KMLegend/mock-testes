@@ -9,37 +9,19 @@ import { ApiClient } from './ApiClient';
 
 export class OcorrenciaDeRecessoRepositoryHttp implements OcorrenciaDeRecessoRepository {
   async todas(): Promise<OcorrenciaDeRecesso[]> {
-    const res = await ApiClient.get<{ occurrences: any[] }>('/v2/recesso/ocorrencias');
-    const list = res.occurrences || [];
-    return list.map(item => new OcorrenciaDeRecesso({
-      id: String(item.id),
-      codContrato: item.contratoId ?? item.codContrato ?? '',
-      dataDoCalculo: new Date(item.dataDoCalculo),
-      competencia: CompetenciaDeRecesso.apartirDe(new Date(item.competencia)),
-      descricao: item.descricao,
-      tipo: TipoOcorrencia.de(item.tipo),
-      quantidade: item.quantidade <= 0 ? QuantidadeDeDias.nenhuma() : QuantidadeDeDias.de(item.quantidade),
-      autor: AutorDoLancamento.usuario(item.lancadoPor),
-      origem: OrigemDaOcorrencia.de(item.origem),
-      criadoEm: new Date(item.dataDoCalculo)
-    }));
+    try {
+      const res = await ApiClient.get<{ occurrences: any[] }>('/v2/recesso/ocorrencias');
+      return this.reconstruirLista(res.occurrences || []);
+    } catch {
+      // Fallback: se o endpoint não suportar a listagem completa,
+      // retorna vazio e o motor regenera os créditos localmente.
+      return [];
+    }
   }
 
   async doContrato(codContrato: string): Promise<OcorrenciaDeRecesso[]> {
     const res = await ApiClient.get<{ occurrences: any[] }>('/v2/recesso/ocorrencias?contratoId=' + encodeURIComponent(codContrato));
-    const list = res.occurrences || [];
-    return list.map(item => new OcorrenciaDeRecesso({
-      id: String(item.id),
-      codContrato,
-      dataDoCalculo: new Date(item.dataDoCalculo),
-      competencia: CompetenciaDeRecesso.apartirDe(new Date(item.competencia)),
-      descricao: item.descricao,
-      tipo: TipoOcorrencia.de(item.tipo),
-      quantidade: item.quantidade <= 0 ? QuantidadeDeDias.nenhuma() : QuantidadeDeDias.de(item.quantidade),
-      autor: AutorDoLancamento.usuario(item.lancadoPor),
-      origem: OrigemDaOcorrencia.de(item.origem),
-      criadoEm: new Date(item.dataDoCalculo)
-    }));
+    return this.reconstruirLista(res.occurrences || [], codContrato);
   }
 
   async salvar(ocorrencia: OcorrenciaDeRecesso): Promise<void> {
@@ -55,5 +37,20 @@ export class OcorrenciaDeRecessoRepositoryHttp implements OcorrenciaDeRecessoRep
   async salvarVarias(_ocorrencias: readonly OcorrenciaDeRecesso[]): Promise<void> {
     // Para salvar várias automáticas, chamamos o processador automático do backend
     await ApiClient.post('/v2/recesso/creditos-automaticos/processar', {});
+  }
+
+  private reconstruirLista(items: any[], codContratoFixo?: string): OcorrenciaDeRecesso[] {
+    return items.map(item => new OcorrenciaDeRecesso({
+      id: String(item.id),
+      codContrato: codContratoFixo ?? item.contratoId ?? item.codContrato ?? '',
+      dataDoCalculo: new Date(item.dataDoCalculo),
+      competencia: CompetenciaDeRecesso.apartirDe(new Date(item.competencia)),
+      descricao: item.descricao,
+      tipo: TipoOcorrencia.de(item.tipo),
+      quantidade: item.quantidade <= 0 ? QuantidadeDeDias.nenhuma() : QuantidadeDeDias.de(item.quantidade),
+      autor: AutorDoLancamento.usuario(item.lancadoPor),
+      origem: OrigemDaOcorrencia.de(item.origem),
+      criadoEm: new Date(item.dataDoCalculo)
+    }));
   }
 }
