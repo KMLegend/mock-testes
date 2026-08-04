@@ -27,6 +27,8 @@ export class Fornecedor {
   get cnpj(): Cnpj { return this.props.cnpj; }
   get ativo(): boolean { return this.props.ativo; }
   get responsavelLegal(): string { return this.props.responsavelLegal ?? this.props.apelido; }
+  /** Sem o fallback pro apelido — para telas que precisam distinguir "não informado" de "igual ao apelido". */
+  get responsavelLegalInformado(): string | undefined { return this.props.responsavelLegal; }
 
   statusParaExibicao(): string {
     if (this.props.ativo) return 'Ativo';

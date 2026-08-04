@@ -102,7 +102,7 @@ export const LinhaDePj: React.FC<LinhaDePjProps> = ({ item, hoje, expandido, onA
           <div className={styles.subtitulo}>{item.nomeFantasia}</div>
         )}
       </td>
-      <td>{item.responsavelLegal}</td>
+      <td>{item.responsavelLegalParaExibicao}</td>
       <td className={styles.mono}>{item.cnpj}</td>
       <td>{item.email}</td>
       <td>

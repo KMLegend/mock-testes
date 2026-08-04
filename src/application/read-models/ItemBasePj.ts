@@ -23,6 +23,11 @@ export class ItemBasePj {
     return this.fornecedor.responsavelLegal;
   }
 
+  /** Para exibição na grade: "-" quando não informado, em vez de cair no apelido (docs/frontend/21). */
+  get responsavelLegalParaExibicao(): string {
+    return this.fornecedor.responsavelLegalInformado ?? '-';
+  }
+
   get email(): string {
     return this.fornecedor.email.paraExibicao();
   }
