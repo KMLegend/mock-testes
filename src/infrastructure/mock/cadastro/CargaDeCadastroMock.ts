@@ -34,11 +34,11 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
     return relatorio;
   }
 
-  baixarModelo(): void {
+  async baixarModelo(): Promise<void> {
     gerarModelo();
   }
 
-  exportarBaseAtual(): void {
+  async exportarBaseAtual(): Promise<void> {
     exportarBase(this.store);
   }
 

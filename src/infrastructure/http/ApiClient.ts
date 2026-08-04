@@ -46,6 +46,33 @@ export class ApiClient {
     return json.data !== undefined ? json.data : json;
   }
 
+  /**
+   * Baixa um arquivo autenticado. Downloads via `window.open`/link direto não conseguem
+   * anexar o header Authorization — por isso a única forma correta de autenticar é via
+   * fetch (nunca `?token=` na URL: vaza para histórico do navegador e logs do servidor).
+   */
+  static async getBlob(path: string): Promise<{ blob: Blob; filename: string | null }> {
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(errJson.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    const disposicao = response.headers.get('Content-Disposition') || '';
+    const nomeCasado = /filename="?([^";]+)"?/i.exec(disposicao);
+
+    return { blob: await response.blob(), filename: nomeCasado?.[1] ?? null };
+  }
+
   static async postMultipart<T>(path: string, file: File): Promise<T> {
     const headers: Record<string, string> = {};
     if (this.token) {

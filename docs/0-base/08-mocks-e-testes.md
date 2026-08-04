@@ -26,7 +26,7 @@ Objetivo: isolar o desenvolvimento das fases 2+ antes do acesso real à API.
 | Chamado aberto | `#1001` | Em Andamento | Contratual | 07-2026 | PJ → **Enviado** |
 | Chamado finalizado | `#1002` | Finalizado | Reembolso plano de saude | 07-2026 | PJ → **Recebido** |
 | 2 chamados, mesmo e-mail | `#1003` **e** `#1004` (IDs distintos) | 1 aberto + 1 finalizado | Contratual + Reembolso | 07-2026 | **2 linhas**; status por tratativa (A-05) |
-| Mês Referente formato texto | `#1005` | Em Andamento | Contratual | "Julho/2026" | Parser → `07-2026` → **Enviado** |
+| Competência = mês de abertura (A-34) | `#1005` | Aberto 28/06, ainda sem `end_date` | Contratual | *(derivado de `creation_date`)* | Competência `06-2026` (mês de abertura) — **Enviado** em julho seria incorreto |
 | E-mail com caixa diferente | `#1006` | Em Andamento | Contratual | 07-2026 | `Joao.Silva@…` casa com `joao.silva@…` → **Enviado** (risco nº 1) |
 | Competência divergente | `#1007` | Finalizado | Contratual | 06-2026 | NÃO afeta 07-2026 (PJ segue Pendente em julho) |
 | Pessoa com >1 contrato | `#1008` | Em Andamento | Ambas | 07-2026 | Campo customizado "CNPJ" do chamado resolve o contrato (`03` §3.1, A-31) |
@@ -54,18 +54,20 @@ Dataset em `13` §4. Fornecedor `carlos.santos@cityinc.com.br` com **2 contratos
 4. **Sem match:** campo vazio ou CNPJ não bate com nenhum contrato → marcar **tratamento manual** (não
    atribuir contrato aleatório); sinalizar no Dashboard.
 
-## 3. Testes do parser "Mês Referente" (Tarefa 4.2)
+## 3. Teste da derivação de competência (A-34 — não é mais parser de texto)
 
-Entradas → saída **sistêmica `MM-AAAA`** (`mes_ano_referencia`):
+> **Simplificado (2026-08-04 — A-34):** "Mês Referente" não é um campo de texto a fazer parse —
+> é sempre o mês/ano de `creation_date` (data de abertura, um campo ISO estruturado, sempre
+> presente no `/list`). A tabela de entradas de texto abaixo (`07/2026`, `Julho/2026`…) descrevia um
+> parser que **não é mais necessário** — não há campo customizado nem `subject` a interpretar.
 
-| Entrada | Saída esperada |
+Teste único e direto: `creation_date` → `mes_ano_referencia` (**sistêmico `MM-AAAA`**):
+
+| `creation_date` (chamado) | `mes_ano_referencia` esperado |
 |---|---|
-| `07/2026` | `07-2026` |
-| `07-2026` | `07-2026` |
-| `2026-07` | `07-2026` |
-| `Julho/2026` | `07-2026` |
-| `"Envio de Nota Fiscal - Junho 2026"` (subject fallback) | `06-2026` |
-| vazio/ inválido | erro tratado; fallback para mês de `creation_date` |
+| `2026-07-28 09:15:00-03:00` | `07-2026` |
+| `2026-06-30 23:50:00-03:00` (aberto no fim do mês, finalizado só em julho) | `06-2026` — mês de **abertura**, não de finalização |
+| `2026-01-05 10:00:00-03:00` | `01-2026` |
 
 ## 4. Testes de Automação de Alertas (worker)
 
@@ -104,7 +106,7 @@ Dado `D` = dia 1 do mês **seguinte** à competência:
 - Paginação e rate limit.
 - Upsert idempotente pela chave **`id_tomticket`** (GUID do chamado — A-05).
 - Casamento por **e-mail**; desambiguação pelo **campo customizado "CNPJ"** do chamado quando >1 contrato (A-31).
-- Interpretação real do "Mês Referente" com dados de produção (amostra).
+- Confirmar `mes_ano_referencia` derivado de `creation_date` com dados reais de produção (A-34).
 
 ## 7. Dados de teste da Lista de PJ e Carga de Cadastro
 

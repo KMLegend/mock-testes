@@ -22,6 +22,11 @@ function mensagem(falha: unknown): string {
   return 'Não foi possível ler a planilha. Confira o arquivo (.xlsx) e as abas.';
 }
 
+function mensagemDownload(falha: unknown): string {
+  if (falha instanceof Error) return `Não foi possível baixar o arquivo: ${falha.message}`;
+  return 'Não foi possível baixar o arquivo.';
+}
+
 interface EstadoInterno {
   readonly estado: EstadoCarga;
   readonly arquivo: File | null;
@@ -55,6 +60,22 @@ export function useCargaDeCadastro(onAplicado?: () => void): ControleDaCarga {
     onAplicado?.();
   }, [interno.arquivo, cargaDeCadastro, onAplicado]);
 
+  const baixarModelo = useCallback(async (): Promise<void> => {
+    try {
+      await cargaDeCadastro.baixarModelo();
+    } catch (falha) {
+      setInterno((atual) => ({ ...atual, erroGeral: mensagemDownload(falha) }));
+    }
+  }, [cargaDeCadastro]);
+
+  const exportarBaseAtual = useCallback(async (): Promise<void> => {
+    try {
+      await cargaDeCadastro.exportarBaseAtual();
+    } catch (falha) {
+      setInterno((atual) => ({ ...atual, erroGeral: mensagemDownload(falha) }));
+    }
+  }, [cargaDeCadastro]);
+
   const podeAplicar =
     interno.estado === 'previa' && interno.relatorio !== null && interno.relatorio.erros.length === 0;
 
@@ -66,8 +87,8 @@ export function useCargaDeCadastro(onAplicado?: () => void): ControleDaCarga {
     podeAplicar,
     selecionar: (arquivo) => void selecionar(arquivo),
     aplicar: () => void aplicar(),
-    baixarModelo: () => cargaDeCadastro.baixarModelo(),
-    exportarBaseAtual: () => cargaDeCadastro.exportarBaseAtual(),
+    baixarModelo: () => void baixarModelo(),
+    exportarBaseAtual: () => void exportarBaseAtual(),
     limpar: () => setInterno(INICIAL)
-  }), [interno, podeAplicar, selecionar, aplicar, cargaDeCadastro]);
+  }), [interno, podeAplicar, selecionar, aplicar, baixarModelo, exportarBaseAtual]);
 }

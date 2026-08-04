@@ -83,81 +83,108 @@ Contrato {
 
 ## 2. Tomticket — Chamados (Recebimento de NF)
 
-Categoria de lançamento de NF (P-03):
-- `category_id` = **`8b9a123fcd09bd585714b53d5370f1a2`**
-- `category_name` = **`"Recebimento de Notas - PJ"`**
-- `department_name` = `"DEPARTAMENTO PESSOAL"`
+> **Payload real confirmado (A-33, 2026-08-04)** — testado contra a conta da City, não mais
+> hipotético. Endpoints, categoria e formato de `custom_fields` abaixo refletem o que a API
+> realmente devolve. Ver `03` §2/§7 para o raciocínio completo (duas chamadas: `/list` + `/detail`).
 
-Situação (P-03):
-| `situation_id` | `situation_description` | `end_date` | Status na Fato |
-|---|---|---|---|
-| `2` | `Em Andamento` | `null` | **Enviado** |
-| `5` | `Finalizado` | preenchido | **Recebido** |
+Categoria de lançamento de NF (P-03, valor **corrigido** em A-33):
+- `category.id` = **`38ae7388ab732f568bfe9193c60165ed`**
+- `category.name` = **`"Lançamento de Notas Fiscais"`**
+- `department.name` = `"Departamento Pessoal"`
 
-Campo customizado (P-04): **`tipo_de_lancamento`** ∈ `Ambas` \| `Contratual` \| `Reembolso plano de saude`.
+> **`situation`/`status`/`current_status` não são usados** para status Enviado/Recebido — só
+> `end_date` (`null` = Enviado; preenchido = Recebido). Ver `03` §4 para o porquê.
 
-### 2.1 Exemplo de retorno (mock) — 3 chamados
+Campo customizado (P-04): **"Tipo de Lançamento"** ∈ `Ambas` \| `Contratual` \| `Reembolso plano de saude`
+— só existe em `custom_fields.open[]` do `/detail`, junto de "CNPJ" (mascarado). **"Mês Referente"
+não é campo customizado** (A-34) — é o mês/ano de `creation_date`, já disponível no `/list`.
+
+### 2.1 Exemplo de retorno — `GET /ticket/list` (sem custom_fields)
 ```json
-[
-  {
-    "id": "8a9f8362abaaf5f90a1884d501cd6176",
-    "protocol": "19164",
-    "subject": "Envio de Nota Fiscal - Junho 2026",
-    "creation_date": "2026-07-20 09:15:00-03:00",
-    "end_date": "2026-07-20 10:30:00-03:00",
-    "name": "João Silva",
-    "email": "joao.silva@cityinc.com.br",
-    "situation_id": "5", "situation_description": "Finalizado",
-    "category_id": "8b9a123fcd09bd585714b53d5370f1a2",
-    "category_name": "Recebimento de Notas - PJ",
-    "tipo_de_lancamento": "Contratual"
-  },
-  {
-    "id": "238d061bed2cff0a763dce00a0c8b586",
-    "protocol": "19165",
-    "subject": "NF Reembolso Convênio Médico",
-    "creation_date": "2026-07-21 11:20:15-03:00",
-    "end_date": "2026-07-21 14:05:22-03:00",
-    "name": "Maria Souza",
-    "email": "maria.souza@cityinc.com.br",
-    "situation_id": "5", "situation_description": "Finalizado",
-    "category_id": "8b9a123fcd09bd585714b53d5370f1a2",
-    "category_name": "Recebimento de Notas - PJ",
-    "tipo_de_lancamento": "Reembolso plano de saude"
-  },
-  {
+{
+  "error": false,
+  "message": null,
+  "data": [
+    {
+      "id": "8a9f8362abaaf5f90a1884d501cd6176",
+      "protocol": 19164,
+      "subject": "Envio de Nota Fiscal - Junho 2026",
+      "creation_date": "2026-07-20 09:15:00-03:00",
+      "end_date": "2026-07-20 10:30:00-03:00",
+      "customer": {
+        "name": "João Silva",
+        "email": "joao.silva@cityinc.com.br"
+      },
+      "category": {
+        "id": "38ae7388ab732f568bfe9193c60165ed",
+        "name": "Lançamento de Notas Fiscais"
+      },
+      "department": { "id": "d205d6b925f991da5c70586a262b3692", "name": "Departamento Pessoal" }
+    },
+    {
+      "id": "c73a8362abaaf5f90a1884d501cd9912",
+      "protocol": 19166,
+      "subject": "Nota Fiscal Julho - Serviços e Plano de Saúde",
+      "creation_date": "2026-07-22 14:10:30-03:00",
+      "end_date": null,
+      "customer": {
+        "name": "Carlos Santos",
+        "email": "carlos.santos@cityinc.com.br"
+      },
+      "category": {
+        "id": "38ae7388ab732f568bfe9193c60165ed",
+        "name": "Lançamento de Notas Fiscais"
+      },
+      "department": { "id": "d205d6b925f991da5c70586a262b3692", "name": "Departamento Pessoal" }
+    }
+  ]
+}
+```
+> Payload real tem mais campos (`priority`, `sla`, `cost`, `evaluation`, `situation`, `operator`…);
+> acima só os relevantes ao domínio (`03` §2.1). **Nenhum** `custom_fields` aqui — só no `/detail`.
+
+### 2.1.1 Exemplo de retorno — `GET /ticket/detail?ticket_id=` (com custom_fields)
+```json
+{
+  "error": false,
+  "message": null,
+  "data": {
     "id": "c73a8362abaaf5f90a1884d501cd9912",
-    "protocol": "19166",
-    "subject": "Nota Fiscal Julho - Serviços e Plano de Saúde",
+    "protocol": 19166,
+    "customer": { "name": "Carlos Santos", "email": "carlos.santos@cityinc.com.br" },
     "creation_date": "2026-07-22 14:10:30-03:00",
     "end_date": null,
-    "name": "Carlos Santos",
-    "email": "carlos.santos@cityinc.com.br",
-    "situation_id": "2", "situation_description": "Em Andamento",
-    "category_id": "8b9a123fcd09bd585714b53d5370f1a2",
-    "category_name": "Recebimento de Notas - PJ",
-    "tipo_de_lancamento": "Ambas"
+    "category": { "id": "38ae7388ab732f568bfe9193c60165ed", "name": "Lançamento de Notas Fiscais" },
+    "situation": { "id": 0, "description": "Sem atendente vinculado" },
+    "custom_fields": {
+      "open": [
+        { "id": "9c897d816b718dcb1070f1e3817ea169", "label": "CNPJ", "value": "17.928.511/0001-70" },
+        { "id": "03d2beee453628d0a5372128bc819eb2", "label": "Tipo de Lançamento", "value": "Ambas" }
+      ],
+      "closed": [],
+      "evaluation": []
+    }
   }
-]
+}
 ```
-> Payload real tem mais campos (priority, operator, sla_*, cost_*); acima os relevantes ao domínio.
+> **CNPJ vem mascarado** (`"17.928.511/0001-70"`) — normalizar para 14 dígitos crus antes de comparar
+> ou persistir. **Não há campo "Mês Referente" aqui, e não precisa haver** (A-34): a competência já
+> foi resolvida no `/list`, a partir de `creation_date` (§2.1) — o `/detail` não participa disso.
 
 ### 2.2 Mapeamento Tomticket → Tabela Fato (`APP.TB_GER_NF_PJ_RECEPCAO`)
-| Campo Tomticket | Campo Fato | Observação |
-|---|---|---|
-| `id` | `id_tomticket` | GUID — **chave de idempotência** do upsert (único) |
-| `protocol` | `numero_chamado` | Número exibido (ex.: `19164`) |
-| `subject` | `assunto` | — |
-| `name` | `nome` | Nome do solicitante |
-| `email` | `email` | **Chave de casamento com a Lista de PJ (A-14)** |
-| `creation_date` | `data_abertura` | ISO com fuso `-03:00` |
-| `end_date` | `data_finalizacao` | `null` enquanto não finalizado |
-| `situation_description` | deriva `status` | `Finalizado`→Recebido; senão Enviado |
-| `category_name`/`category_id` | filtro | só `Recebimento de Notas - PJ` |
-| `tipo_de_lancamento` | `tipo_lancamento` | normalizar (ver §2.3) |
-| *(Mês Referente)* | `mes_ano_referencia` | **campo customizado; ver §2.4** |
-| *(CNPJ)* | `cnpj` | **campo customizado; só lido no cenário 2 de desambiguação (§4, A-31)** |
-| *(derivado)* | `link_chamado` | montar `TOMTICKET_BASE_URL` + `id`/`protocol` |
+| Campo Tomticket | Origem | Campo Fato | Observação |
+|---|---|---|---|
+| `id` | `/list` | `id_tomticket` | GUID — **chave de idempotência** do upsert (único) |
+| `protocol` | `/list` | `numero_chamado` | Número exibido (ex.: `19164`) |
+| `subject` | `/list` | `assunto` | — |
+| `customer.name` | `/list` | `nome` | Nome do solicitante |
+| `customer.email` | `/list` | `email` | **Chave de casamento com a Lista de PJ (A-14)** |
+| `creation_date` | `/list` | `data_abertura` | ISO com fuso `-03:00`; **também deriva `mes_ano_referencia`** (ver §2.4, A-34) |
+| `end_date` | `/list` | `data_finalizacao` | `null` enquanto não finalizado; **único sinal de status** (`03` §4) |
+| `category.name`/`category.id` | `/list` | filtro | só `"Lançamento de Notas Fiscais"` (A-33) |
+| `custom_fields.open[label="Tipo de Lançamento"].value` | `/detail` | `tipo_lancamento` | normalizar (ver §2.3) |
+| `custom_fields.open[label="CNPJ"].value` | `/detail` | `cnpj` | mascarado na origem; **só lido no cenário 2** de desambiguação (§4, A-31) |
+| *(derivado)* | — | `link_chamado` | montar `TOMTICKET_BASE_URL` + `id`/`protocol` |
 
 ### 2.3 Normalização do `tipo_de_lancamento`
 Valores do Tomticket → canônico interno:
@@ -167,12 +194,13 @@ Valores do Tomticket → canônico interno:
 
 > Tolerar variação de acento/caixa; centralizar num mapeamento configurável (`03` §5).
 
-### 2.4 "Mês Referente" e competência (P-05)
+### 2.4 "Mês Referente" e competência (P-05, resolvido por A-34)
 - Formato **sistêmico (armazenado): `MM-AAAA`** (ex.: `07-2026`).
 - Formato **de exibição (UI): `MM/AAAA`** (ex.: `07/2026`).
-- O campo customizado "Mês Referente" **não aparece** no payload de exemplo acima — no mock, adicioná-lo;
-  na ausência, derivar do `subject` (ex.: "Junho 2026") ou do mês de `creation_date` (fallback).
-  Ver `03` §6.
+- **Não é campo customizado.** `mes_ano_referencia` é sempre o mês/ano de `creation_date` (data de
+  abertura) — confirmado pelo usuário com exemplo: chamado aberto 30/06, finalizado 03/07 →
+  competência **Junho** (mês da abertura, não da finalização). Já disponível no `/list`, sem
+  depender do `/detail` nem de parser de `subject`. Ver `03` §6.
 
 ## 3. Template de e-mail de alerta (P-02)
 
@@ -222,9 +250,9 @@ Placeholders:
 ## 4. Mock da desambiguação por contrato (A-31) — 1 PJ em >1 contrato
 
 > **Objetivo:** exercitar o **cenário 2** de `03` §3.1 (pessoa com **mais de um contrato**). O CNPJ
-> vem do **campo customizado "CNPJ" do próprio chamado** — o mesmo payload que já traz
-> `tipo_de_lancamento` e "Mês Referente" (`03` §2/§7). **Não há extração de PDF nem Marker**
-> (P-09/A-21 foram descontinuados — ver `09-pendencias-e-decisoes.md`). O mock deste documento
+> vem do **campo customizado "CNPJ" do `/detail` do chamado** — junto de "Tipo de Lançamento" (`03`
+> §2.2/§7). **Não há extração de PDF nem Marker** (P-09/A-21 foram descontinuados — ver
+> `09-pendencias-e-decisoes.md`). O mock deste documento
 > simplesmente **preenche o campo `cnpj` no payload de exemplo** (§4.3), sem simular nenhum passo de
 > extração — porque não há nenhum a simular.
 

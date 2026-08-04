@@ -24,6 +24,6 @@ export interface RelatorioDeImportacao {
 export interface CargaDeCadastro {
   previsualizar(arquivo: File): Promise<RelatorioDeImportacao>;
   aplicar(arquivo: File): Promise<RelatorioDeImportacao>;
-  baixarModelo(): void;
-  exportarBaseAtual(): void;
+  baixarModelo(): Promise<void>;
+  exportarBaseAtual(): Promise<void>;
 }

@@ -225,14 +225,31 @@ ORDER BY pj.nome;
 ```
 
 ## 5. Gateway Tomticket (contrato de classe)
+
+> Endpoints reais confirmados em 2026-08-04 (A-33): `GET /ticket/list` (sem `custom_fields`) e
+> `GET /ticket/detail?ticket_id=` (com `custom_fields`) — ver `03` §2/§7. **Duas chamadas**: `listar`
+> roda uma vez para toda a categoria; `obter_detalhe` só para chamados já casados por e-mail.
+
 ```python
 # app/services/interfaces/tomticket_gateway.py
 class ITomticketGateway(ABC):
     @abstractmethod
-    def listar_chamados_nf(self, categoria_id: str, mes_ano_referencia: str | None = None) -> list[ChamadoTomticket]: ...
+    def listar_chamados_nf(self, categoria_id: str, mes_ano_referencia: str | None = None) -> list[ChamadoResumo]:
+        """GET /ticket/list — sem custom_fields (03 §2.1)."""
+        ...
     @abstractmethod
-    def obter_chamado(self, id_tomticket: str) -> ChamadoTomticket: ...
+    def obter_detalhe_chamado(self, id_tomticket: str) -> DetalheChamado:
+        """GET /ticket/detail?ticket_id= — custom_fields (tipo_de_lancamento, mes_referente, cnpj), 03 §2.2."""
+        ...
 ```
+
+**Variáveis de ambiente:**
+```
+TOMTICKET_BASE_URL=https://api.tomticket.com/v2.0
+API_KEY_TOMTICKET_HUB=...          # secret já provisionado no GitHub Secrets — NÃO remapear o nome
+TOMTICKET_CATEGORIA_NF=38ae7388ab732f568bfe9193c60165ed   # confirmado, A-33
+```
+> Header confirmado contra a API real (A-35, 2026-08-04): `Authorization: Bearer <token>`.
 
 ## 6. Dependency Injection (`app/dependencies.py`)
 ```python

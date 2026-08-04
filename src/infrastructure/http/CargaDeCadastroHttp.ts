@@ -30,17 +30,28 @@ export class CargaDeCadastroHttp implements CargaDeCadastro {
     };
   }
 
-  baixarModelo(): void {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const token = import.meta.env.VITE_API_TOKEN || '';
-    const url = `${baseUrl}/v2/prestadores/template${token ? '?token=' + encodeURIComponent(token) : ''}`;
-    window.open(url, '_blank');
+  async baixarModelo(): Promise<void> {
+    await this.baixarArquivo('/v2/prestadores/template', 'modelo_base_prestadores.xlsx');
   }
 
-  exportarBaseAtual(): void {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const token = import.meta.env.VITE_API_TOKEN || '';
-    const url = `${baseUrl}/v2/prestadores/exportacao${token ? '?token=' + encodeURIComponent(token) : ''}`;
-    window.open(url, '_blank');
+  async exportarBaseAtual(): Promise<void> {
+    await this.baixarArquivo('/v2/prestadores/exportacao', 'base_prestadores_atual.xlsx');
+  }
+
+  /**
+   * `window.open`/navegação direta não conseguem anexar o header Authorization — a rota exige
+   * JWT (verify_integration_token só lê o header, nunca `?token=` na URL). Por isso o download
+   * passa por fetch autenticado e um link temporário, nunca por navegação direta com o token na URL.
+   */
+  private async baixarArquivo(caminho: string, nomePadrao: string): Promise<void> {
+    const { blob, filename } = await ApiClient.getBlob(caminho);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || nomePadrao;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 }

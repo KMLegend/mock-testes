@@ -39,7 +39,7 @@ No Tomticket há um campo customizado **"Tipo de Lançamento"** com os valores: 
 ## 4. Fluxo de alto nível
 
 1. **Base**: Lista de PJ (do HCM) define os fornecedores ativos do período.
-2. **Integração de leitura**: sincroniza chamados da categoria "Recebimento de Notas - PJ"; casa por **e-mail**.
+2. **Integração de leitura**: sincroniza chamados da categoria "Lançamento de Notas Fiscais" (A-33); casa por **e-mail**.
 3. **Integração de atualização**: verifica se o chamado foi encerrado para evoluir o ciclo de vida da NF.
 4. **Motor de status**: cruza Lista de PJ × Tabela Fato por competência e classifica cada PJ (Pendente/Enviado/Recebido).
 5. **Automação de alertas (worker Python)**: calcula elegíveis (excluindo quem já consta na Fato e quem já foi alertado) e dispara e-mails via Office 365 nas regras de tempo.
@@ -72,7 +72,7 @@ Tomticket ────────────┘            │                
   ~~e desambiguar o contrato quando a pessoa tem >1 contrato (A-14, `03` §3.1).~~ **Descontinuado
   (A-31, 2026-07-29):** o CNPJ é um **campo customizado do próprio chamado no Tomticket**, lido
   direto do payload — sem PDF, sem Marker.
-- **Chamado** — Ticket no Tomticket (categoria "Recebimento de Notas - PJ") associado ao lançamento de NF.
+- **Chamado** — Ticket no Tomticket (categoria "Lançamento de Notas Fiscais", A-33) associado ao lançamento de NF.
 - **Categoria (Tomticket)** — Categoria do chamado que identifica "lançamento de NF" (ID/nome a confirmar — ver `09-pendencias-e-decisoes.md`).
 
 ## 6. Escopo e não-escopo
