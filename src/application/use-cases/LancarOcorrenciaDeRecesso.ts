@@ -1,6 +1,5 @@
 import { Contrato } from '../../domain/entities/Contrato';
 import { OcorrenciaDeRecesso } from '../../domain/entities/OcorrenciaDeRecesso';
-import { ExtratoDeRecesso } from '../../domain/collections/ExtratoDeRecesso';
 import { AutorDoLancamento } from '../../domain/value-objects/AutorDoLancamento';
 import { CompetenciaDeRecesso } from '../../domain/value-objects/CompetenciaDeRecesso';
 import { OrigemDaOcorrencia } from '../../domain/value-objects/OrigemDaOcorrencia';
@@ -44,10 +43,8 @@ export class LancarOcorrenciaDeRecesso {
     const data = this.interpretarData(dados.dataDaOcorrencia);
     const quantidade = QuantidadeDeDias.de(dados.quantidade);
     const tipo = TipoOcorrencia.de(dados.tipo);
-    const extrato = await this.extratoDoContrato(dados.contratoId);
 
     this.garantirContratoVigente(contrato);
-    this.garantirSaldoSuficiente(extrato, tipo, quantidade);
 
     const usuario = await this.deps.usuarioAtual.identificar();
     await this.deps.ocorrenciaRepo.salvar(
@@ -74,10 +71,6 @@ export class LancarOcorrenciaDeRecesso {
     return contrato;
   }
 
-  private async extratoDoContrato(contratoId: string): Promise<ExtratoDeRecesso> {
-    return new ExtratoDeRecesso(await this.deps.ocorrenciaRepo.doContrato(contratoId));
-  }
-
   private garantirContratoVigente(contrato: Contrato): void {
     if (contrato.estaVigente(this.relogio()())) return;
     throw new LancamentoInvalido(
@@ -96,19 +89,6 @@ export class LancarOcorrenciaDeRecesso {
       throw new LancamentoInvalido('Não é permitido lançar ocorrência com data futura.');
     }
     return data;
-  }
-
-  /** R-05 (default): débito não pode deixar o saldo negativo. */
-  private garantirSaldoSuficiente(
-    extrato: ExtratoDeRecesso,
-    tipo: TipoOcorrencia,
-    quantidade: QuantidadeDeDias
-  ): void {
-    if (tipo.ehCredito()) return;
-    if (extrato.suportaDebito(tipo, quantidade)) return;
-    throw new LancamentoInvalido(
-      `Saldo insuficiente: o saldo atual é de ${extrato.saldoAtual().paraExibicao()}.`
-    );
   }
 
   private relogio(): () => Date {

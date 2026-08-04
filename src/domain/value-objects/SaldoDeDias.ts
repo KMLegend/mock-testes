@@ -40,7 +40,7 @@ export class SaldoDeDias {
     return this.centesimos === 0;
   }
 
-  /** Suporta a regra R-05: bloquear débito que deixaria o saldo negativo. */
+  /** Indica se o débito deixaria o saldo negativo (informativo — saldo pode negativar). */
   suporta(tipo: TipoOcorrencia, quantidade: QuantidadeDeDias): boolean {
     return !this.aplicar(tipo, quantidade).ehNegativo();
   }

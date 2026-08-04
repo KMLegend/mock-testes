@@ -144,7 +144,7 @@ describe('SaldoDeDias', () => {
     expect(String(saldo.obterValor())).not.toContain('0000');
   });
 
-  it('R-05: bloqueia débito que deixaria o saldo negativo', () => {
+  it('suporta() indica se o débito deixaria o saldo negativo (informativo, saldo pode negativar)', () => {
     const saldo = SaldoDeDias.de(2.5);
     expect(saldo.suporta(TipoOcorrencia.debito(), QuantidadeDeDias.de(2.5))).toBe(true);
     expect(saldo.suporta(TipoOcorrencia.debito(), QuantidadeDeDias.de(3))).toBe(false);
