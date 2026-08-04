@@ -109,22 +109,7 @@ export const ModalImportarPlanilha: React.FC<ModalImportarPlanilhaProps> = ({ ab
       <div className={styles.modalCard}>
         <div className={styles.modalHeader}>
           <h2>Importar planilha</h2>
-          <button className={styles.btnClose} aria-label="Fechar" onClick={fechar}>&times;</button>
-        </div>
-
-        <div className={styles.modalBody}>
-          <p className={styles.aviso}>
-            <strong>cod_empresa não é uma coluna</strong> — o sistema gera esse código sozinho a
-            partir do CNPJ (é só um identificador interno). A aba <strong>Contratos</strong> vincula
-            ao fornecedor pelo <strong>mesmo CNPJ</strong> usado na aba Fornecedores, não por código.
-          </p>
-
-          <TabelaDeColunas titulo="Fornecedores" colunas={COLUNAS_FORNECEDORES} />
-          <TabelaDeColunas titulo="Contratos" colunas={COLUNAS_CONTRATOS} />
-
-          <p className={styles.legenda}><span className={styles.obrigatorio}>*</span> campo obrigatório</p>
-
-          <div className={styles.selecaoArquivo}>
+          <div className={styles.headerAcoes}>
             <label className={styles.botaoSelecionar} id="btn-enviar-planilha">
               {ocupado ? 'Processando...' : 'Selecionar arquivo (.xlsx)'}
               <input
@@ -134,8 +119,12 @@ export const ModalImportarPlanilha: React.FC<ModalImportarPlanilhaProps> = ({ ab
                 disabled={ocupado}
               />
             </label>
-            {controle.nomeArquivo !== '' && <span className={styles.arquivo}>{controle.nomeArquivo}</span>}
+            <button className={styles.btnClose} aria-label="Fechar" onClick={fechar}>&times;</button>
           </div>
+        </div>
+
+        <div className={styles.modalBody}>
+          {controle.nomeArquivo !== '' && <p className={styles.arquivo}>Arquivo: {controle.nomeArquivo}</p>}
 
           {controle.erroGeral !== '' && (
             <p className={styles.erroGeral} role="alert">{controle.erroGeral}</p>
@@ -154,6 +143,17 @@ export const ModalImportarPlanilha: React.FC<ModalImportarPlanilhaProps> = ({ ab
               Fechar
             </button>
           )}
+
+          <p className={styles.aviso}>
+            <strong>cod_empresa não é uma coluna</strong> — o sistema gera esse código sozinho a
+            partir do CNPJ (é só um identificador interno). A aba <strong>Contratos</strong> vincula
+            ao fornecedor pelo <strong>mesmo CNPJ</strong> usado na aba Fornecedores, não por código.
+          </p>
+
+          <TabelaDeColunas titulo="Fornecedores" colunas={COLUNAS_FORNECEDORES} />
+          <TabelaDeColunas titulo="Contratos" colunas={COLUNAS_CONTRATOS} />
+
+          <p className={styles.legenda}><span className={styles.obrigatorio}>*</span> campo obrigatório</p>
         </div>
       </div>
     </div>

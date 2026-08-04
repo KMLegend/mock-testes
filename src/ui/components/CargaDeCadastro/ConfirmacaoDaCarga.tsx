@@ -9,7 +9,7 @@ export const ConfirmacaoDaCarga: React.FC<{ controle: ControleDaCarga }> = ({ co
     <div className={styles.confirmar}>
       <button
         type="button"
-        className={styles.botaoPrimario}
+        className={`${styles.botao} ${styles.botaoPrimario}`}
         onClick={controle.aplicar}
         disabled={!controle.podeAplicar || aplicando}
         id="btn-confirmar-carga"
