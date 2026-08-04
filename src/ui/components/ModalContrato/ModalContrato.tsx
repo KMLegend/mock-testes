@@ -62,7 +62,7 @@ export const ModalContrato: React.FC<ModalContratoProps> = ({ linha, onFechar })
             </div>
             <div className={styles.item}>
               <dt>Fim do Contrato</dt>
-              <dd>{contrato.dataFim.paraFormatadoCurto()}</dd>
+              <dd>{contrato.dataFimParaExibicao}</dd>
             </div>
             <div className={styles.item}>
               <dt>Status (vigência)</dt>

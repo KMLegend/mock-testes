@@ -53,7 +53,7 @@ const DetalhesDosContratos: React.FC<{ item: ItemBasePj; hoje: Date }> = ({ item
                   <td>{contrato.nomeEmpresaResponsavel}</td>
                   <td>
                     {contrato.dataInicio.paraFormatadoCurto()} até{' '}
-                    {contrato.dataFim.paraFormatadoCurto()}
+                    {contrato.dataFimParaExibicao}
                   </td>
                   <td><ValorMensalOculto valor={contrato.valorMensal} /></td>
                   <td>

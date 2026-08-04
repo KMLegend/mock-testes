@@ -24,6 +24,14 @@ export class Contrato {
   get empresaResponsavel(): string { return this.props.empresaResponsavel; }
   get nomeEmpresaResponsavel(): string { return this.props.nomeEmpresaResponsavel; }
   get isDeletedAt(): string | null { return this.props.isDeletedAt ?? null; }
+  
+  get temPrazoDeterminado(): boolean {
+    return this.props.dataFim.paraDataLocal().getFullYear() !== 9999;
+  }
+  
+  get dataFimParaExibicao(): string {
+    return this.temPrazoDeterminado ? this.props.dataFim.paraFormatadoCurto() : '-';
+  }
   get ehDeletado(): boolean { return this.props.isDeletedAt !== null && this.props.isDeletedAt !== undefined; }
 
   ehDoFornecedor(codEmpresa: string): boolean {
