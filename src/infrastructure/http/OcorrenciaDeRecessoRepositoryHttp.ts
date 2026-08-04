@@ -9,7 +9,20 @@ import { ApiClient } from './ApiClient';
 
 export class OcorrenciaDeRecessoRepositoryHttp implements OcorrenciaDeRecessoRepository {
   async todas(): Promise<OcorrenciaDeRecesso[]> {
-    return [];
+    const res = await ApiClient.get<{ occurrences: any[] }>('/v2/recesso/ocorrencias');
+    const list = res.occurrences || [];
+    return list.map(item => new OcorrenciaDeRecesso({
+      id: String(item.id),
+      codContrato: item.contratoId ?? item.codContrato ?? '',
+      dataDoCalculo: new Date(item.dataDoCalculo),
+      competencia: CompetenciaDeRecesso.apartirDe(new Date(item.competencia)),
+      descricao: item.descricao,
+      tipo: TipoOcorrencia.de(item.tipo),
+      quantidade: item.quantidade <= 0 ? QuantidadeDeDias.nenhuma() : QuantidadeDeDias.de(item.quantidade),
+      autor: AutorDoLancamento.usuario(item.lancadoPor),
+      origem: OrigemDaOcorrencia.de(item.origem),
+      criadoEm: new Date(item.dataDoCalculo)
+    }));
   }
 
   async doContrato(codContrato: string): Promise<OcorrenciaDeRecesso[]> {
