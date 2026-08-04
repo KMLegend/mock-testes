@@ -29,8 +29,12 @@ export class ListarContratosParaRecesso {
     ]);
 
     const porCodEmpresa = new Map(fornecedores.map((pj) => [pj.codEmpresa, pj]));
-    const todas = await this.deps.ocorrenciaRepo.todas();
-    const geral = new ExtratoDeRecesso(todas);
+
+    // Busca ocorrências por contrato (o backend exige contratoId como parâmetro obrigatório).
+    const ocorrenciasPorContrato = await Promise.all(
+      contratos.map((contrato) => this.deps.ocorrenciaRepo.doContrato(contrato.identificador()))
+    );
+    const geral = new ExtratoDeRecesso(ocorrenciasPorContrato.flat());
 
     const novos = contratos.flatMap((contrato) => this.creditosPendentes(contrato, geral));
     if (novos.length > 0) await this.deps.ocorrenciaRepo.salvarVarias(novos);
