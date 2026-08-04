@@ -34,9 +34,12 @@ status: normativo
 
 Fonte da verdade dos fornecedores, **populada a partir do ERP HCM/planilha**. Cada linha = um fornecedor PJ.
 
-> ℹ️ **Cadastro Permanente (Acumulativo):** A tabela de prestadores é **acumulativa**. A importação de planilha **nunca realiza DELETE** (físico ou lógico) de prestadores. Se um prestador sumir da planilha, ele **permanece** no cadastro.
+> ⚠️ **Substituição total na importação (A-32, revertido de "acumulativo" em 2026-07-30):** cada
+> envio bem-sucedido de planilha **trunca e recria** esta tabela a partir do conteúdo validado.
+> Um prestador que sumir da planilha **deixa de existir** no cadastro (não é mais preservado).
+> Ver `19-fonte-de-cadastro-modular.md` §8 e A-32 em `09-pendencias-e-decisoes.md`.
 >
-> 🔴 **Status "Ativo" do PJ é DERIVADO:** Não existe o estado do fornecedor solto como regra única de atividade. Um PJ é considerado **ativo** no período se possuir **pelo menos um contrato não-deletado em vigência** (`is_delete = 0 AND data_inicio <= hoje AND (data_fim IS NULL OR data_fim >= hoje)`).
+> 🔴 **Status "Ativo" do PJ é DERIVADO:** Não existe o estado do fornecedor solto como regra única de atividade. Um PJ é considerado **ativo** no período se possuir **pelo menos um contrato em vigência** (`data_inicio <= hoje AND (data_fim IS NULL OR data_fim >= hoje)`) na base recém-importada.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -53,7 +56,11 @@ Fonte da verdade dos fornecedores, **populada a partir do ERP HCM/planilha**. Ca
 
 Registra os contratos dos prestadores PJ. Dita a vigência e a atividade real do prestador.
 
-> ⚠️ **Ciclo de vida e Soft Delete:** A importação de planilha executa **soft delete (`is_delete = 1`)** exclusivamente nesta tabela para contratos que deixarem de constar na planilha enviada. O histórico de contratos é preservado.
+> ⚠️ **Substituição total na importação (A-32):** cada envio bem-sucedido de planilha **trunca e
+> recria** esta tabela junto com `PRESTADOR`. Um contrato ausente na planilha nova **deixa de
+> existir** (não é mais soft-deletado/preservado). O `id_contrato` (surrogate) muda a cada
+> importação — isso **não** quebra o histórico de recesso, porque `RECESSO_MOVIMENTO` referencia o
+> contrato por `cod_empresa`/`cod_contrato` (chave de negócio), nunca por `id_contrato`.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -66,10 +73,12 @@ Registra os contratos dos prestadores PJ. Dita a vigência e a atividade real do
 | `valor_mensal` | decimal | Não | Valor mensal do contrato |
 | `empresa_vinculada_codigo` | string | Sim | Código da tomadora de serviço (ex.: `001`) |
 | `empresa_vinculada_nome` | string | Sim | Nome da tomadora de serviço (ex.: `CITY INCORPORADORA LTDA`) |
-| `is_delete` | BIT | Sim | `0` = ativo na base; `1` = soft-deleted na importação |
+| `is_delete` | BIT | Sim | Convenção padrão CITY API (default `0`); **não é usado pela importação de planilha** desde A-32 |
 | `data_inclusao` | DATETIME2(7) | Sim | Data de cadastro |
 
-> **Unicidade e Chave Composta:** A chave natural `(cod_empresa, cod_contrato)` possui **índice único filtrado** (`WHERE is_delete = 0`). Isso garante que um contrato soft-deleted possa ser historiado sem causar conflito de chave se for re-inserido futuramente.
+> **Unicidade e Chave Composta:** a chave natural `(cod_empresa, cod_contrato)` é única na base a
+> cada importação — como a tabela é truncada e recriada a cada envio (A-32), não há risco de
+> conflito com registros de importações anteriores.
 
 > **Chave de casamento com o Tomticket (A-14):** a chave é o **e-mail** (não há chave de fallback fixa). Normalizar trim + lowercase dos dois lados. O **CNPJ** é usado apenas como **desambiguador** (campo customizado "CNPJ" do próprio chamado no Tomticket, A-31) quando a pessoa tem **mais de um contrato** — ver `03-integracao-tomticket.md` §3.1. O CNPJ segue registrado no cadastro (origem HCM) para relatórios/export.
 

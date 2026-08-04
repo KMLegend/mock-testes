@@ -36,9 +36,9 @@ O fluxo do usuário é um ciclo: **baixa o modelo → preenche → sobe → lê 
 
 Carga manual = erro de digitação é regra. A tela **nunca** aplica em silêncio: após o upload, mostra
 
-- **Contadores por aba**:
-  - **Fornecedores** (cadastro acumulativo): `inseridos · atualizados`.
-  - **Contratos** (ciclo de vida): `inseridos · atualizados · reativados · desativados`.
+- **Contadores por aba** (A-32 — a importação **substitui a base inteira**, não é upsert):
+  - **Fornecedores**: `importados · removidos_da_base_anterior`.
+  - **Contratos**: `importados · removidos_da_base_anterior`.
 - **Tabela de erros** (quando houver): `aba · linha · campo · motivo` — ex.: `Contratos · 7 · cnpj · deve ter 14 dígitos`.
 - **Regra tudo-ou-nada**: havendo **qualquer** erro, **nada** é gravado; a pessoa corrige a lista
   inteira e reenvia. Só com zero erros o botão **Confirmar carga** aplica.
@@ -63,10 +63,8 @@ Tela (React)  →  ImportarCadastro (caso de uso)  →  porta CargaDeCadastro
 ```ts
 // src/application/ports/CargaDeCadastro.ts
 export interface ResumoAba {
-  readonly inseridos: number;
-  readonly atualizados: number;
-  readonly reativados?: number;   // exclusivo de Contratos
-  readonly desativados?: number;  // exclusivo de Contratos
+  readonly importados: number;
+  readonly removidosDaBaseAnterior: number;
 }
 
 export interface RelatorioDeImportacao {
@@ -97,7 +95,7 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
     const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
     const relatorio = this.montarRelatorio(base, erros);
     if (erros.length === 0) {
-      this.store.fundir(base); // merge por chave natural (upsert + soft delete nos contratos ausentes)
+      this.store.substituir(base); // trunca e recria fornecedores/contratos a partir da planilha (A-32)
       this.ocorrenciaRepo?.limparAutomaticos();
     }
     return relatorio;
@@ -105,18 +103,21 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
 }
 ```
 
-### 3.4 Regra de merge da importação (Frontend & Backend)
+### 3.4 Regra de substituição da importação (Frontend & Backend) — A-32
 
-1. **Aba Fornecedores (Acumulativa):**
-   - Para cada fornecedor na planilha: se `codEmpresa` existe na base → **atualiza** dados cadastrais (`atualizados++`); se não existe → **insere** (`inseridos++`).
-   - Fornecedores ausentes na planilha **NUNCA são deletados**.
+> ⚠️ **Revertido em 2026-07-30.** Esta seção descrevia um merge acumulativo (fornecedor nunca
+> apagado) com soft-delete de contrato. O comportamento correto é **substituição total**: a planilha
+> vira a base inteira a cada envio. Ver A-32 em `09-pendencias-e-decisoes.md` e `19` §8.
 
-2. **Aba Contratos (Soft Delete):**
-   - Para cada contrato na planilha:
-     - Se `(codEmpresa, codContrato)` existe e está ativo (`isDeletedAt === null`) → **atualiza** (`atualizados++`).
-     - Se `(codEmpresa, codContrato)` existe e está soft-deleted (`isDeletedAt !== null`) → **reativa** limpando a data de remoção (`reativados++`).
-     - Se não existe → **insere** (`inseridos++`).
-   - Para cada contrato ativo na base que **NÃO consta** na planilha enviada → executa **soft delete** registrando a data/timestamp atual em `isDeletedAt` (`desativados++`).
+1. **Fornecedores:** a tabela é **esvaziada e recriada** com o conteúdo validado da aba
+   `Fornecedores` — cada linha vira um registro novo (`importados++`); quem estava na base antes e
+   não veio na planilha nova **deixa de existir** (`removidosDaBaseAnterior++`).
+2. **Contratos:** mesma lógica — **esvaziada e recriada** com o conteúdo da aba `Contratos`
+   (`importados++` / `removidosDaBaseAnterior++`). O `idContrato` (surrogate) de um contrato que
+   continua existindo na planilha nova **pode mudar** — isso é seguro porque `OcorrenciaDeRecesso`
+   referencia o contrato pela chave de negócio (`codEmpresa`/`codContrato`), nunca pelo id surrogate.
+3. **Ordem de operações:** validar 100% da planilha primeiro (regra tudo-ou-nada, §2); só depois de
+   zero erros o `store.substituir(base)` executa o truncar-e-recriar, numa única operação atômica.
 
 > O `validarComVOs` do front espelha o `LeitorDePlanilha` + contrato do back (`19` §6.4). Mesma planilha,
 > mesmas colunas, mesmas regras — por design, não por coincidência.

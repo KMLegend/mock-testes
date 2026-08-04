@@ -66,6 +66,11 @@ ID — `5-deploy-producao/spfx-sharepoint/02`). Dois caminhos possíveis:
 - [ ] Um adaptador HTTP por porta da tabela acima, implementando a mesma interface do mock.
 - [ ] Envelope de resposta da CITY API (`2-backend-homolog/06` §5) tratado no adaptador — a UI não vê o envelope, só os dados.
 - [ ] Erros de rede/HTTP mapeados para os mesmos tipos de erro que o mock já lançava (`LancamentoInvalido`, etc.) — a UI não deve saber que a origem mudou.
-- [ ] Flag de ambiente (`.env` do frontend) selecionando mock × HTTP, para continuar rodando a demo sem backend.
+- [ ] Flag de ambiente (`.env` do frontend, **não versionado** — ver `.env.example`) selecionando mock × HTTP:
+      `VITE_USE_API=true|false` (lida em `CompositionRoot.tsx`; exige **reiniciar** `npm run dev`,
+      o Vite só lê `.env` na inicialização), `VITE_API_URL` (base da CITY API, default
+      `http://localhost:8000`) e `VITE_API_TOKEN` (JWT M2M — sem ele, todo request HTTP recebe
+      `401` do `verify_integration_token`). Continua rodando a demo sem backend com
+      `VITE_USE_API=false` (ou arquivo ausente).
 - [ ] Suite de testes do frontend (Fase 1) **continua verde** sem alteração — prova de que a troca foi só de adaptador.
 - [ ] Testar os fluxos ponta-a-ponta: listar, lançar ocorrência de recesso, importar planilha, exportar `.xlsx`.

@@ -6,10 +6,8 @@ export interface ErroDeImportacao {
 }
 
 export interface ResumoAba {
-  readonly inseridos: number;
-  readonly atualizados: number;
-  readonly reativados?: number;
-  readonly desativados?: number;
+  readonly importados: number;
+  readonly removidosDaBaseAnterior: number;
 }
 
 export interface RelatorioDeImportacao {

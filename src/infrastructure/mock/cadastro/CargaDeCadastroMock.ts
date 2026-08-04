@@ -29,7 +29,7 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
     if (erros.length > 0) {
       return this.montarRelatorio(base, erros);
     }
-    const relatorio = this.store.fundir(base);
+    const relatorio = this.store.substituir(base);
     this.ocorrenciaRepo?.limparAutomaticos();
     return relatorio;
   }
@@ -42,48 +42,29 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
     exportarBase(this.store);
   }
 
+  /** Pré-visualização: simula o efeito da substituição total (A-32) sem gravar nada. */
   private montarRelatorio(
     base: BaseDeCadastro,
     erros: readonly ErroDeImportacao[]
   ): RelatorioDeImportacao {
-    // 1. Simulação Fornecedores
-    const fornecedoresAtuais = new Set(this.store.fornecedores().map((f) => f.codEmpresa));
-    let fornecedoresInseridos = 0;
-    let fornecedoresAtualizados = 0;
+    const codigosNovosFornecedores = new Set(base.fornecedores.map((f) => f.codEmpresa));
+    const fornecedoresRemovidos = this.store
+      .fornecedores()
+      .filter((f) => !codigosNovosFornecedores.has(f.codEmpresa)).length;
 
-    base.fornecedores.forEach((f) => {
-      if (fornecedoresAtuais.has(f.codEmpresa)) fornecedoresAtualizados++;
-      else fornecedoresInseridos++;
-    });
-
-    // 2. Simulação Contratos
-    const contratosAtuaisMap = new Map(this.store.contratos().map((c) => [c.identificador(), c]));
     const chavesNovosContratos = new Set(base.contratos.map((c) => c.identificador()));
-    let contratosInseridos = 0;
-    let contratosAtualizados = 0;
-    let contratosReativados = 0;
-    let contratosDesativados = 0;
-
-    base.contratos.forEach((c) => {
-      const existente = contratosAtuaisMap.get(c.identificador());
-      if (!existente) contratosInseridos++;
-      else if (existente.ehDeletado) contratosReativados++;
-      else contratosAtualizados++;
-    });
-
-    this.store.contratos().forEach((c) => {
-      if (!c.ehDeletado && !chavesNovosContratos.has(c.identificador())) {
-        contratosDesativados++;
-      }
-    });
+    const contratosRemovidos = this.store
+      .contratos()
+      .filter((c) => !chavesNovosContratos.has(c.identificador())).length;
 
     return {
-      fornecedores: { inseridos: fornecedoresInseridos, atualizados: fornecedoresAtualizados },
+      fornecedores: {
+        importados: base.fornecedores.length,
+        removidosDaBaseAnterior: fornecedoresRemovidos
+      },
       contratos: {
-        inseridos: contratosInseridos,
-        atualizados: contratosAtualizados,
-        reativados: contratosReativados,
-        desativados: contratosDesativados
+        importados: base.contratos.length,
+        removidosDaBaseAnterior: contratosRemovidos
       },
       ignorados: 0,
       erros

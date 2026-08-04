@@ -48,18 +48,24 @@ export class BaseDeCadastroStore {
     return [...this.contratosAtuais];
   }
 
-  substituir(base: BaseDeCadastro): void {
-    this.fundir(base);
-  }
-
   /**
-   * Executa o merge de cadastro conforme regras normativas:
-   * 1. Fornecedores: Acumulativo (upsert de novos/existentes; NUNCA deleta ausentes).
-   * 2. Contratos: Ciclo de vida + Soft Delete (upsert de novos/existentes; reativação dos deletados; soft delete dos ausentes).
+   * Substituição total (A-32): a planilha vira a base inteira. Fornecedores e contratos
+   * ausentes na planilha nova deixam de existir — não há upsert acumulativo nem soft delete.
+   * Seguro para o Recesso porque `OcorrenciaDeRecesso` referencia o contrato pela chave de
+   * negócio (`codEmpresa`/`codContrato`), nunca pelo identificador surrogate.
    */
-  fundir(novaBase: BaseDeCadastro): RelatorioDeImportacao {
-    const resumoFornecedores = this.fundirFornecedores(novaBase.fornecedores);
-    const resumoContratos = this.fundirContratos(novaBase.contratos);
+  substituir(novaBase: BaseDeCadastro): RelatorioDeImportacao {
+    const resumoFornecedores = this.resumoDaSubstituicao(
+      this.fornecedoresAtuais.map((f) => f.codEmpresa),
+      novaBase.fornecedores.map((f) => f.codEmpresa)
+    );
+    const resumoContratos = this.resumoDaSubstituicao(
+      this.contratosAtuais.map((c) => c.identificador()),
+      novaBase.contratos.map((c) => c.identificador())
+    );
+
+    this.fornecedoresAtuais = [...novaBase.fornecedores];
+    this.contratosAtuais = [...novaBase.contratos];
     this.persistir();
 
     return {
@@ -70,84 +76,11 @@ export class BaseDeCadastroStore {
     };
   }
 
-  /** Fornecedores são acumulativos: upsert por codEmpresa, nunca remove quem sumiu da planilha. */
-  private fundirFornecedores(novos: readonly Fornecedor[]): ResumoAba {
-    let inseridos = 0;
-    let atualizados = 0;
-    const mapa = new Map<string, Fornecedor>(this.fornecedoresAtuais.map((f) => [f.codEmpresa, f]));
-
-    novos.forEach((fornecedor) => {
-      if (mapa.has(fornecedor.codEmpresa)) atualizados++;
-      else inseridos++;
-      mapa.set(fornecedor.codEmpresa, fornecedor);
-    });
-
-    this.fornecedoresAtuais = Array.from(mapa.values());
-    return { inseridos, atualizados };
-  }
-
-  /**
-   * Contratos têm ciclo de vida com soft delete: upsert de novos/existentes, reativação dos
-   * que estavam deletados e voltaram à planilha, soft delete dos que sumiram.
-   */
-  private fundirContratos(novos: readonly Contrato[]): ResumoAba {
-    const mapa = new Map<string, Contrato>(this.contratosAtuais.map((c) => [c.identificador(), c]));
-    const chavesNovas = new Set(novos.map((c) => c.identificador()));
-
-    const { inseridos, atualizados, reativados } = this.upsertContratos(novos, mapa);
-    const desativados = this.softDeleteAusentes(chavesNovas, mapa);
-
-    this.contratosAtuais = Array.from(mapa.values());
-    return { inseridos, atualizados, reativados, desativados };
-  }
-
-  private upsertContratos(
-    novos: readonly Contrato[],
-    mapa: Map<string, Contrato>
-  ): { inseridos: number; atualizados: number; reativados: number } {
-    let inseridos = 0;
-    let atualizados = 0;
-    let reativados = 0;
-
-    novos.forEach((contrato) => {
-      const chave = contrato.identificador();
-      const existente = mapa.get(chave);
-      if (!existente) inseridos++;
-      else if (existente.ehDeletado) reativados++; // novo objeto sem isDeletedAt = reativado
-      else atualizados++;
-      mapa.set(chave, contrato);
-    });
-
-    return { inseridos, atualizados, reativados };
-  }
-
-  /** Soft delete dos contratos ativos que não constam mais na planilha. */
-  private softDeleteAusentes(chavesNovas: ReadonlySet<string>, mapa: Map<string, Contrato>): number {
-    let desativados = 0;
-    const agora = new Date().toISOString();
-
-    this.contratosAtuais.forEach((contrato) => {
-      const chave = contrato.identificador();
-      if (contrato.ehDeletado || chavesNovas.has(chave)) return;
-      desativados++;
-      mapa.set(chave, this.comSoftDelete(contrato, agora));
-    });
-
-    return desativados;
-  }
-
-  private comSoftDelete(contrato: Contrato, agora: string): Contrato {
-    return new Contrato({
-      codEmpresa: contrato.codEmpresa,
-      codContrato: contrato.codContrato,
-      nomeContrato: contrato.nomeContrato,
-      dataInicio: contrato.dataInicio,
-      dataFim: contrato.dataFim,
-      valorMensal: contrato.valorMensal,
-      empresaResponsavel: contrato.empresaResponsavel,
-      nomeEmpresaResponsavel: contrato.nomeEmpresaResponsavel,
-      isDeletedAt: agora
-    });
+  private resumoDaSubstituicao(chavesAntigas: readonly string[], chavesNovas: readonly string[]): ResumoAba {
+    const antigas = new Set(chavesAntigas);
+    const novas = new Set(chavesNovas);
+    const removidosDaBaseAnterior = [...antigas].filter((chave) => !novas.has(chave)).length;
+    return { importados: chavesNovas.length, removidosDaBaseAnterior };
   }
 
   /** Volta aos dados de exemplo (útil na demo). */

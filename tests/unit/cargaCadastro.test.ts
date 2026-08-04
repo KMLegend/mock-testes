@@ -56,65 +56,57 @@ describe('Carga de cadastro — validação da planilha', () => {
   });
 });
 
-describe('CargaDeCadastroMock — merge acumulativo, soft delete e reativação', () => {
+describe('CargaDeCadastroMock — substituição total (A-32)', () => {
   beforeEach(() => localStorage.clear());
 
   const FORN_NOVO = ['777', 'NOVA LTDA', 'Nova', 'Resp', 'nova@cityinc.com.br', '99999999000199', '1', 'Sim'];
 
-  it('previsualizar NÃO grava; aplicar faz merge acumulativo de fornecedores e armazena novo registro', async () => {
+  it('previsualizar NÃO grava; aplicar importa o fornecedor novo', async () => {
     const store = new BaseDeCadastroStore();
     const carga = new CargaDeCadastroMock(store);
     const arquivo = arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1')]));
 
     const previa = await carga.previsualizar(arquivo);
     expect(previa.erros).toHaveLength(0);
-    expect(previa.fornecedores.inseridos).toBe(1);
     expect(store.fornecedores().some((forn) => forn.codEmpresa === '777')).toBe(false); // não gravou ainda
 
     const aplicado = await carga.aplicar(arquivo);
     expect(aplicado.erros).toHaveLength(0);
-    expect(aplicado.fornecedores.inseridos).toBe(1);
-    expect(store.fornecedores().some((forn) => forn.codEmpresa === '777')).toBe(true); // acumulou
+    expect(aplicado.fornecedores.importados).toBe(1);
+    expect(store.fornecedores().some((forn) => forn.codEmpresa === '777')).toBe(true);
   });
 
-  it('contrato ausente na nova planilha recebe soft delete (isDeletedAt); fornecedor permanece acumulado', async () => {
+  it('fornecedor e contrato ausentes na planilha nova deixam de existir na base', async () => {
     const store = new BaseDeCadastroStore();
     const carga = new CargaDeCadastroMock(store);
 
-    // 1ª Carga com fornecedor 777 e contrato C-1
+    // 1ª carga: fornecedor 777 com contrato C-1
     await carga.aplicar(arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1')])));
-    expect(store.contratos().find((c) => c.identificador() === '777-C-1')?.ehDeletado).toBe(false);
-
-    // 2ª Carga sem o contrato C-1 (apenas com um novo contrato C-2)
-    const relatorio2 = await carga.aplicar(arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-2')])));
-    expect(relatorio2.contratos.desativados).toBe(1);
-
-    const contratoC1 = store.contratos().find((c) => c.identificador() === '777-C-1');
-    expect(contratoC1).toBeDefined();
-    expect(contratoC1?.ehDeletado).toBe(true);
-    expect(contratoC1?.isDeletedAt).not.toBeNull();
-
-    // O fornecedor continua existindo no cadastro permanente acumulativo
     expect(store.fornecedores().some((f) => f.codEmpresa === '777')).toBe(true);
+    expect(store.contratos().some((c) => c.identificador() === '777-C-1')).toBe(true);
+
+    // 2ª carga: só um fornecedor/contrato diferente — a base antiga inteira some
+    const FORN_OUTRO = ['888', 'OUTRA LTDA', 'Outra', 'Resp', 'outra@cityinc.com.br', '11111111000111', '1', 'Sim'];
+    const relatorio2 = await carga.aplicar(arquivoXlsx(planilha([FORN_OUTRO], [contrato('888', 'C-1')])));
+
+    expect(relatorio2.fornecedores.removidosDaBaseAnterior).toBe(1);
+    expect(relatorio2.contratos.removidosDaBaseAnterior).toBe(1);
+    expect(store.fornecedores().some((f) => f.codEmpresa === '777')).toBe(false);
+    expect(store.contratos().some((c) => c.identificador() === '777-C-1')).toBe(false);
+    expect(store.fornecedores().some((f) => f.codEmpresa === '888')).toBe(true);
   });
 
-  it('contrato previamente em soft delete é reativado se reaparecer na planilha', async () => {
+  it('reenviar a mesma planilha 2 vezes é idempotente no resultado (mesma base, sem duplicar)', async () => {
     const store = new BaseDeCadastroStore();
     const carga = new CargaDeCadastroMock(store);
+    const arquivo = () => arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1')]));
 
-    // Carga 1: envia C-1
-    await carga.aplicar(arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1')])));
-    // Carga 2: envia C-2 (C-1 desativado)
-    await carga.aplicar(arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-2')])));
-    expect(store.contratos().find((c) => c.identificador() === '777-C-1')?.ehDeletado).toBe(true);
+    await carga.aplicar(arquivo());
+    const relatorio2 = await carga.aplicar(arquivo());
 
-    // Carga 3: re-envia C-1 e C-2
-    const relatorio3 = await carga.aplicar(arquivoXlsx(planilha([FORN_NOVO], [contrato('777', 'C-1'), contrato('777', 'C-2')])));
-    expect(relatorio3.contratos.reativados).toBe(1);
-
-    const contratoC1Reativado = store.contratos().find((c) => c.identificador() === '777-C-1');
-    expect(contratoC1Reativado?.ehDeletado).toBe(false);
-    expect(contratoC1Reativado?.isDeletedAt).toBeNull();
+    expect(relatorio2.fornecedores.importados).toBe(1);
+    expect(relatorio2.fornecedores.removidosDaBaseAnterior).toBe(0);
+    expect(store.fornecedores().filter((f) => f.codEmpresa === '777')).toHaveLength(1);
   });
 
   it('planilha com erro não altera a base', async () => {

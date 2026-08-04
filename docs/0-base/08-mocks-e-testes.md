@@ -110,12 +110,29 @@ Dado `D` = dia 1 do mês **seguinte** à competência:
 
 Criar uma Lista de PJ de teste com pelo menos: um PJ que entrega, um que não entrega, um com `Ambas`, um com **e-mail em caixa diferente** do chamado, um com **>1 contrato** (para exercitar o campo customizado "CNPJ", A-31), e um inativo (sem contrato em vigência) para validar a derivação de status.
 
-### 7.1 Cenários de teste de importação e ciclo de vida
+### 7.1 Cenários de teste de importação e ciclo de vida (A-32 — substituição total)
 
-1. **Fornecedor permanente (acumulativo):** Subir planilha sem um fornecedor que constava na anterior → fornecedor **permanece** no cadastro (não é deletado).
-2. **Soft Delete de contrato:** Subir planilha sem um contrato de um PJ → contrato recebe `is_delete = True`. Ocorrências de recesso vinculadas ao contrato permanecem intactas (somente leitura).
-3. **PJ torna-se inativo por falta de contrato:** Se todos os contratos de um PJ forem soft-deleted ou expirarem vigência → PJ passa a ser classificado como **inativo** (não aparece como Pendente na competência de NF).
-4. **Reativação de contrato:** Subir planilha contendo um contrato previamente soft-deleted → contrato tem `is_delete` definido como `False`, mantendo o mesmo `id_contrato` e reativando a vigência.
-5. **Idempotência de importação:** Importar a mesma planilha 2 vezes consecutivas → **0 inserções e 0 desativações** no relatório.
-6. **Ausência de conflito de chave:** Mesma combinação `(cod_empresa, cod_contrato)` previamente soft-deleted e re-inserida como novo contrato → aceita sem erro de chave duplicada (garantido pelo índice filtrado `WHERE is_delete = 0`).
+> Reescrito em 2026-07-30: a carga manual deixou de ser acumulativa/soft-delete (`19` §8) e passou a
+> **substituir a base inteira** a cada envio bem-sucedido — ver A-32 em `09-pendencias-e-decisoes.md`.
+
+1. **Fornecedor ausente na planilha nova é removido:** Subir planilha sem um fornecedor que constava
+   na anterior → fornecedor **não existe mais** no cadastro após o import (comportamento invertido
+   do antigo "acumulativo").
+2. **Contrato ausente na planilha nova é removido:** Subir planilha sem um contrato de um PJ →
+   contrato **não existe mais** na base após o import (removido, não soft-deletado).
+3. **Recesso não quebra com o truncar-e-recriar:** Um contrato com ocorrências de recesso lançadas é
+   removido/recriado (novo `id_contrato`) numa importação seguinte que ainda o inclui na planilha →
+   `ExtratoDeRecesso.doContrato(codContrato)` continua retornando as ocorrências antigas, porque
+   `RECESSO_MOVIMENTO` referencia `cod_empresa`/`cod_contrato` (chave de negócio), não o `id_contrato`
+   (surrogate) que mudou. Este é o teste crítico de A-32 — prova que a troca de estratégia não perde
+   histórico de recesso.
+4. **PJ torna-se inativo por ausência na planilha ou falta de contrato:** Um fornecedor que não veio
+   na planilha nova simplesmente não existe mais (item 1); um fornecedor presente mas sem nenhum
+   contrato em vigência é classificado **inativo** (não aparece como Pendente na competência de NF).
+5. **Substituição idempotente no resultado:** Importar a mesma planilha 2 vezes consecutivas →
+   resultado final idêntico (mesmos fornecedores/contratos), mas **cada** envio bem-sucedido trunca e
+   recarrega — não é um upsert incremental que "não faz nada" na segunda vez.
+6. **Erro em qualquer linha aborta antes de truncar:** Planilha com erro de validação em qualquer
+   linha → **nada é truncado nem gravado** (regra tudo-ou-nada continua valendo; truncar só acontece
+   depois da validação completa passar).
 

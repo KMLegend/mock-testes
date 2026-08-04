@@ -413,15 +413,25 @@ FonteDeCadastro.obter()  →  LeitorDeCadastro.ler()  →  LoteDeCadastro (domí
                                                 CONTRATO   (chave cod_empresa+cod_contrato)
 ```
 
+> ⚠️ **Decisão revertida (2026-07-30 — A-32, ver `09-pendencias-e-decisoes.md`).** As regras abaixo
+> descreviam a carga como **acumulativa** (fornecedor nunca apagado) com **soft-delete** de contrato
+> para o que sumisse da planilha. O usuário confirmou que o comportamento real desejado é outro: a
+> carga manual (§8.1) é a **fonte única de verdade** a cada envio — **substitui a base inteira**,
+> sem preservar histórico do que não veio na planilha. Ver §8.1 para a regra atual.
+
 Regras da ingestão (herdadas de `06` §9 / `12`):
 1. **E-mail normalizado** (`trim`+`lower`) na escrita; único no cadastro (A-14).
-2. **Upsert inteligente de cadastro:**
-    - **Aba Fornecedores (acumulativa):** upsert de dados cadastrais. **NUNCA realiza DELETE** (fornecedores ausentes permanecem no cadastro).
-    - **Aba Contratos (ciclo de vida):** upsert de contratos. Contratos ausentes da nova carga recebem **soft delete (`is_delete = True`)**. Contratos previamente soft-deleted que constem na nova carga são **reativados (`is_delete = False`)**.
-3. **Status de atividade do PJ** derivado automaticamente da existência de pelo menos 1 contrato não-deletado em vigência (`[dataInicio, dataFim]`).
-4. **Transação** por lote; falha de validação **aborta o lote** (não grava meia-sincronização).
+2. **Substituição total (truncar e recriar) — A-32:** a planilha subida **é** a base a partir daquele
+   momento. Fornecedores e contratos que **não** constam na planilha nova são **removidos** (não
+   soft-deletados) — a tabela é esvaziada e recriada com o conteúdo validado do lote.
+3. **Status de atividade do PJ** derivado automaticamente da existência de pelo menos 1 contrato em
+   vigência (`[dataInicio, dataFim]`) na base recém-carregada.
+4. **Transação** por lote; falha de validação **aborta o lote** (não grava meia-sincronização) —
+   inclusive não trunca nada se a planilha tiver qualquer erro (regra tudo-ou-nada, §8.1 continua igual).
 
-> DDL: a tabela `APP.TB_DPE_GPJ_PRESTADOR` (acumulativa) e `APP.TB_DPE_GPJ_CONTRATO` (com `is_delete` e índice único filtrado em `cod_empresa + cod_contrato WHERE is_delete = 0`) estão especificadas em `12` §2.
+> DDL: `APP.TB_DPE_GPJ_PRESTADOR` e `APP.TB_DPE_GPJ_CONTRATO` estão especificadas em `12` §2. A coluna
+> `is_delete` permanece no schema (outros fluxos podem usá-la), mas **a importação de planilha não a
+> usa mais** — ela trunca e reinsere, não soft-deleta.
 
 ### 8.1 Carga manual pelo usuário — upload/download (Opção A)
 
@@ -442,7 +452,7 @@ não existe). O backend expõe três rotas; a tela é desenhada em
 
 | Método | Rota | Arquivo | O que faz |
 |---|---|---|---|
-| **POST** | `/v2/prestadores/importacao` | `app/api/v2/prestadores.py` | Recebe o `.xlsx` (multipart), valida, faz upsert/soft delete, devolve **relatório** |
+| **POST** | `/v2/prestadores/importacao` | `app/api/v2/prestadores.py` | Recebe o `.xlsx` (multipart), valida, **trunca e recria a base** (A-32), devolve **relatório** |
 | GET | `/v2/prestadores/template` | idem | Baixa a **planilha-modelo** vazia (cabeçalhos das 2 abas) |
 | GET | `/v2/prestadores/exportacao` | idem | Baixa a **base atual** em `.xlsx` (editar em ciclo / auditoria) |
 
@@ -453,7 +463,7 @@ não existe). O backend expõe três rotas; a tela é desenhada em
 **Fluxo do import** (reusa tudo de §5/§8, só muda a origem dos bytes):
 ```
 UploadFile → LeitorDePlanilha.ler(bytes) → PayloadDeCadastro.model_validate (linha-a-linha)
-           → SincronizarCadastroUseCase (upsert + soft delete nos contratos, 1 transação) → RelatorioDeImportacao
+           → SincronizarCadastroUseCase (TRUNCATE + INSERT, 1 transação, A-32) → RelatorioDeImportacao
 ```
 
 ```python
@@ -472,8 +482,8 @@ async def importar(arquivo: UploadFile = File(...), _=Depends(verify_integration
 ```json
 { "statusCode": 200, "version": "v2", "accessed_by": "nf-pjs-dashboard",
   "data": {
-    "fornecedores": { "inseridos": 12, "atualizados": 3 },
-    "contratos": { "inseridos": 10, "atualizados": 2, "reativados": 1, "desativados": 2 },
+    "fornecedores": { "importados": 12, "removidos_da_base_anterior": 3 },
+    "contratos": { "importados": 10, "removidos_da_base_anterior": 5 },
     "ignorados": 0,
     "erros": [ { "aba": "Contratos", "linha": 7, "campo": "cnpj", "motivo": "deve ter 14 dígitos" } ]
   } }
@@ -481,9 +491,11 @@ async def importar(arquivo: UploadFile = File(...), _=Depends(verify_integration
 
 **Regras da carga manual:**
 1. **Tudo-ou-nada com relatório completo.** Valida **todas** as linhas e coleta **todos** os erros; se
-   houver **qualquer** erro, **não grava nada** e devolve a lista inteira — a pessoa corrige de uma vez.
-   (Difere do erro-e-para: numa carga manual, apanhar um erro por vez é péssima UX.)
-2. **Idempotente** — subir a mesma planilha 2× não duplica (upsert por chave, `08` §8).
+   houver **qualquer** erro, **não grava nada** (nem trunca) e devolve a lista inteira — a pessoa
+   corrige de uma vez. (Difere do erro-e-para: numa carga manual, apanhar um erro por vez é péssima UX.)
+2. **Substitui a base inteira (A-32)** — subir a mesma planilha 2× é idempotente no **resultado**
+   (a base fica igual), mas **não** é um upsert incremental: cada envio bem-sucedido esvazia e
+   recarrega `PRESTADOR` e `CONTRATO` do zero a partir do conteúdo validado da planilha.
 3. **Só perfil administrativo** sobe base — a autorização é **R-04/P-12** (identidade do usuário via
    token; ver `geral/18`). Fase 1 (mock) sem auth.
 4. **Status do contrato** derivado da vigência: contrato Ativo = hoje ∈ `[dataInicio, dataFim]`. Não há
@@ -563,7 +575,7 @@ precisam saber — que a fonte deixou de ser o arquivo JSON.
 - [ ] Registro `_FONTES` + `obter_fonte_de_cadastro()` em `dependencies.py`; `FONTE_CADASTRO` no `.env`.
 - [ ] `seed/cadastro_v1.json` espelhando os mocks do frontend (casos de `07` §4).
 - [ ] DDL da tabela de contrato com `data_inicio/fim DATE`.
-- [ ] `SincronizarCadastroUseCase`: upsert idempotente, e-mail normalizado, soft-delete, transação/lote.
+- [ ] `SincronizarCadastroUseCase`: substituição total (TRUNCATE + INSERT, A-32), e-mail normalizado, transação/lote.
 - [ ] **Rotas `/v2/prestadores/importacao` · `/template` · `/exportacao`** (§8.1) com `RelatorioDeImportacao`.
 - [ ] Import **tudo-ou-nada** com relatório de erros por linha (aba/linha/campo/motivo); só admin (P-12).
 - [ ] Status do contrato derivado da vigência (`dataInicio`/`dataFim`): Ativo se hoje ∈ `[início, fim]`.

@@ -66,6 +66,7 @@ status: rastreador
 | **A-28** | Hospedagem e identidade | A aplicação roda **embarcada no SharePoint** (iframe); **usuários e controle de acesso são os do SharePoint / Entra ID** — sem cadastro próprio. O backend deve derivar a identidade de um **token de usuário verificável** (nunca de valor enviado pelo cliente). | `18-hospedagem-sharepoint-e-identidade.md` |
 | **A-29** | Forma de entrega do frontend (resolve P-11 de `18`) | **SPFx web part** publicada no SharePoint, com **CITY API** como backend e token de **usuário** do Entra ID via `AadHttpClient`. Descartada a alternativa SPA+iframe+MSAL. | `spfx-sharepoint/` |
 | **A-31** | Origem do CNPJ na desambiguação de contrato (resolve P-09, substitui A-21) | O CNPJ vem de um **campo customizado do próprio chamado no Tomticket** ("CNPJ"), lido do mesmo payload que já traz `tipo_de_lancamento` e "Mês Referente" — **não** de extração de PDF via Marker. Elimina a interface `INotaCnpjExtractor`/`MockNotaCnpjExtractor` e a flag `CNPJ_EXTRACTOR`. Sem valor no campo → tratamento manual (mesma regra anterior). | `03` §3.1, `03` §7 |
+| **A-32** | Comportamento da carga manual de planilha (Base de PJs) | A importação **substitui a base inteira**: cada envio bem-sucedido **trunca e recria** `PRESTADOR` e `CONTRATO` a partir do conteúdo validado da planilha. **Reverte** o desenho anterior de `19` §8 (fornecedor acumulativo nunca apagado + contrato ausente vira soft-delete/reativação) — a planilha passa a ser a **fonte única de verdade** a cada upload, sem preservar o que não veio nela. Não afeta `RECESSO_MOVIMENTO`: a FK é por `cod_empresa`/`cod_contrato` (chave de negócio), não pelo `id_contrato` (surrogate), então o truncar-e-recriar não quebra o histórico de ocorrências de recesso. | `19` §8, §8.1 |
 
 ## 3. Decisões ainda a confirmar
 
@@ -110,6 +111,7 @@ status: rastreador
 | 2026-07-17 | A-28 | App será publicado **no SharePoint como iframe**; **identidade e controle de acesso vêm do SharePoint/Entra ID**. Resolve a direção de **R-04** do módulo de Recesso; abre **P-11..P-16** em `18`. | kevin.maykel@cityinc.com.br |
 | 2026-07-17 | A-29 | Frontend será **SPFx web part** (não SPA em iframe). Resolve **P-11**; converte P-12→S-06, P-13→S-09, P-14→S-02 e torna P-15 inaplicável. Backend segue a **CITY API**, que passará a validar **token de usuário RS256**. | kevin.maykel@cityinc.com.br |
 | 2026-07-29 | A-31 | CNPJ da desambiguação (cenário 2, §3.1 de `03`) vem de **campo customizado do chamado no Tomticket**, não de extração de PDF via Marker (resolve P-09, substitui A-21). | kevin.maykel@cityinc.com.br |
+| 2026-07-30 | A-32 | Carga manual de planilha (Base de PJs) passa a **substituir a base inteira** (truncar + recriar `PRESTADOR`/`CONTRATO`), em vez do desenho anterior de fornecedor acumulativo + contrato soft-delete/reativação (`19` §8). | kevin.maykel@cityinc.com.br |
 
 ### Decisões substituídas (histórico)
 | ID antigo | Substituído por | O que mudou |

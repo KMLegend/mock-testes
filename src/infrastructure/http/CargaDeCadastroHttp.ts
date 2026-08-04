@@ -13,8 +13,8 @@ export class CargaDeCadastroHttp implements CargaDeCadastro {
     
     // Simula as contagens baseada nas regras locais para exibição prévia
     return {
-      fornecedores: { inseridos: base.fornecedores.length, atualizados: 0 },
-      contratos: { inseridos: base.contratos.length, atualizados: 0, reativados: 0, desativados: 0 },
+      fornecedores: { importados: base.fornecedores.length, removidosDaBaseAnterior: 0 },
+      contratos: { importados: base.contratos.length, removidosDaBaseAnterior: 0 },
       ignorados: 0,
       erros
     };

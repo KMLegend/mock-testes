@@ -1,2 +1,4 @@
 node_modules
 api-city
+.env
+.env.local
