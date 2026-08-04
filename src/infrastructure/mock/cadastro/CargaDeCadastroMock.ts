@@ -20,12 +20,12 @@ export class CargaDeCadastroMock implements CargaDeCadastro {
   ) {}
 
   async previsualizar(arquivo: File): Promise<RelatorioDeImportacao> {
-    const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
+    const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()), this.store.fornecedores());
     return this.montarRelatorio(base, erros);
   }
 
   async aplicar(arquivo: File): Promise<RelatorioDeImportacao> {
-    const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()));
+    const { base, erros } = validar(lerAbas(await arquivo.arrayBuffer()), this.store.fornecedores());
     if (erros.length > 0) {
       return this.montarRelatorio(base, erros);
     }
