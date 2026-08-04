@@ -10,8 +10,8 @@ import { ApiClient } from './ApiClient';
 export class OcorrenciaDeRecessoRepositoryHttp implements OcorrenciaDeRecessoRepository {
   async todas(): Promise<OcorrenciaDeRecesso[]> {
     try {
-      const res = await ApiClient.get<{ occurrences: any[] }>('/v2/recesso/ocorrencias');
-      return this.reconstruirLista(res.occurrences || []);
+      const res = await ApiClient.get<{ ocorrencias: any[] }>('/v2/recesso/ocorrencias');
+      return this.reconstruirLista(res.ocorrencias || []);
     } catch {
       // Fallback: se o endpoint não suportar a listagem completa,
       // retorna vazio e o motor regenera os créditos localmente.
@@ -20,8 +20,8 @@ export class OcorrenciaDeRecessoRepositoryHttp implements OcorrenciaDeRecessoRep
   }
 
   async doContrato(codContrato: string): Promise<OcorrenciaDeRecesso[]> {
-    const res = await ApiClient.get<{ occurrences: any[] }>('/v2/recesso/ocorrencias?contratoId=' + encodeURIComponent(codContrato));
-    return this.reconstruirLista(res.occurrences || [], codContrato);
+    const res = await ApiClient.get<{ ocorrencias: any[] }>('/v2/recesso/ocorrencias?contratoId=' + encodeURIComponent(codContrato));
+    return this.reconstruirLista(res.ocorrencias || [], codContrato);
   }
 
   async salvar(ocorrencia: OcorrenciaDeRecesso): Promise<void> {
