@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { DataHora } from '../../src/domain/value-objects/DataHora';
 import { Contrato } from '../../src/domain/entities/Contrato';
+import { Fornecedor } from '../../src/domain/entities/Fornecedor';
 import { ExtratoDeRecesso } from '../../src/domain/collections/ExtratoDeRecesso';
 import { MotorDeCreditoMensal } from '../../src/domain/services/MotorDeCreditoMensal';
 import { CompetenciaDeRecesso } from '../../src/domain/value-objects/CompetenciaDeRecesso';
 import { QuantidadeDeDias } from '../../src/domain/value-objects/QuantidadeDeDias';
 import { SaldoDeDias } from '../../src/domain/value-objects/SaldoDeDias';
 import { TipoOcorrencia } from '../../src/domain/value-objects/TipoOcorrencia';
+import { LinhaDeRecesso } from '../../src/application/read-models/LinhaDeRecesso';
 
 const HOJE = new Date(2026, 6, 17); // 17/07/2026
 const agora = (): Date => HOJE;
@@ -131,6 +133,72 @@ describe('MotorDeCreditoMensal', () => {
     expect(motor.gerarPara(contratoDeTeste, extrato).length).toBe(0);
     expect(extrato.acrescentar(motor.gerarPara(contratoDeTeste, extrato)).saldoAtual().obterValor())
       .toBe(42.5);
+  });
+});
+
+describe('MotorDeCreditoMensal — finalização antecipada (botão "Finalizar contrato")', () => {
+  const motor = new MotorDeCreditoMensal(agora);
+
+  it('gera rescisão + zeramento antes do fim da vigência, usando hoje como referência', () => {
+    // vigência só termina em 2027, mas a finalização é acionada hoje (17/07/2026)
+    const c = contrato('2023-03-15', '2027-12-31');
+    const jaCreditado = new ExtratoDeRecesso(motor.gerarPara(c, ExtratoDeRecesso.vazio()));
+
+    const gerados = motor.gerarEncerramentoAntecipado(c, jaCreditado);
+    const rescisao = gerados.find((g) => g.id === `auto-rescisao-${c.identificador()}`);
+    const zeramento = gerados.find((g) => g.id === `auto-zeramento-${c.identificador()}`);
+
+    expect(rescisao).toBeDefined();
+    expect(rescisao!.dataDoCalculo.getTime()).toBe(HOJE.getTime());
+    expect(zeramento).toBeDefined();
+    expect(zeramento!.tipo.ehDebito()).toBe(true);
+    expect(jaCreditado.acrescentar(gerados).saldoAtual().obterValor()).toBe(0);
+  });
+
+  it('é idempotente: reprocessar não duplica a rescisão/zeramento já lançados', () => {
+    const c = contrato('2023-03-15', '2027-12-31');
+    const extrato = new ExtratoDeRecesso(motor.gerarPara(c, ExtratoDeRecesso.vazio()));
+    const primeiraVez = new ExtratoDeRecesso(extrato.paraArray().concat(motor.gerarEncerramentoAntecipado(c, extrato)));
+
+    expect(motor.gerarEncerramentoAntecipado(c, primeiraVez).length).toBe(0);
+  });
+});
+
+const fornecedor = new Fornecedor({
+  codEmpresa: '013',
+  empresa: 'Empresa Teste',
+  apelido: 'Teste',
+  email: { paraExibicao: () => 'a@a.com' } as any,
+  tipoInscricao: 'PJ',
+  cnpj: { obterDigitos: () => '12345678000190' } as any,
+  ativo: true
+});
+
+describe('LinhaDeRecesso.podeFinalizarAntecipadamente', () => {
+  it('libera o botão a partir de 30 dias antes do fim da vigência', () => {
+    const c = contrato('2023-03-15', '2026-08-10'); // 24 dias após HOJE (17/07/2026)
+    const linha = new LinhaDeRecesso({ contrato: c, fornecedor, extrato: ExtratoDeRecesso.vazio(), hoje: HOJE });
+    expect(linha.podeFinalizarAntecipadamente()).toBe(true);
+  });
+
+  it('não libera quando faltam mais de 30 dias para o fim', () => {
+    const c = contrato('2023-03-15', '2026-12-31');
+    const linha = new LinhaDeRecesso({ contrato: c, fornecedor, extrato: ExtratoDeRecesso.vazio(), hoje: HOJE });
+    expect(linha.podeFinalizarAntecipadamente()).toBe(false);
+  });
+
+  it('não libera quando já existe rescisão lançada (evita duplicar o encerramento)', () => {
+    const c = contrato('2023-03-15', '2026-08-10');
+    const motorLocal = new MotorDeCreditoMensal(agora);
+    const jaEncerrado = new ExtratoDeRecesso(motorLocal.gerarEncerramentoAntecipado(c, ExtratoDeRecesso.vazio()));
+    const linha = new LinhaDeRecesso({ contrato: c, fornecedor, extrato: jaEncerrado, hoje: HOJE });
+    expect(linha.podeFinalizarAntecipadamente()).toBe(false);
+  });
+
+  it('não libera para contrato sem prazo definido (9999-12-31)', () => {
+    const c = contrato('2023-03-15', '9999-12-31');
+    const linha = new LinhaDeRecesso({ contrato: c, fornecedor, extrato: ExtratoDeRecesso.vazio(), hoje: HOJE });
+    expect(linha.podeFinalizarAntecipadamente()).toBe(false);
   });
 });
 

@@ -9,6 +9,7 @@ import { ContratoRepository } from '../../application/ports/ContratoRepository';
 import { ListarContratosParaRecesso } from '../../application/use-cases/ListarContratosParaRecesso';
 import { LancarOcorrenciaDeRecesso } from '../../application/use-cases/LancarOcorrenciaDeRecesso';
 import { ExportarRecesso } from '../../application/use-cases/ExportarRecesso';
+import { FinalizarContratoAntecipadamente } from '../../application/use-cases/FinalizarContratoAntecipadamente';
 import { CargaDeCadastro } from '../../application/ports/CargaDeCadastro';
 
 export interface Dependencias {
@@ -21,6 +22,7 @@ export interface Dependencias {
   readonly contratoRepo: ContratoRepository;
   readonly listarContratosParaRecesso: ListarContratosParaRecesso;
   readonly lancarOcorrenciaDeRecesso: LancarOcorrenciaDeRecesso;
+  readonly finalizarContratoAntecipadamente: FinalizarContratoAntecipadamente;
   readonly exportarRecesso: ExportarRecesso;
   readonly cargaDeCadastro: CargaDeCadastro;
 }

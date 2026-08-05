@@ -23,36 +23,38 @@ export class FabricaDeOcorrenciasAutomaticas {
     });
   }
 
-  rescisao(contrato: Contrato, params: { dias: number; ganhaCredito: boolean; valorCredito: number }): OcorrenciaDeRecesso {
+  rescisao(
+    contrato: Contrato,
+    dataReferencia: Date,
+    params: { dias: number; ganhaCredito: boolean; valorCredito: number }
+  ): OcorrenciaDeRecesso {
     const { dias, ganhaCredito, valorCredito } = params;
-    const fimDaVigencia = contrato.dataFim.paraDataLocal();
     return new OcorrenciaDeRecesso({
       id: `auto-rescisao-${contrato.identificador()}`,
       codContrato: contrato.identificador(),
-      dataDoCalculo: fimDaVigencia,
-      competencia: CompetenciaDeRecesso.contendo(fimDaVigencia, contrato.dataInicio.paraDataLocal()),
+      dataDoCalculo: dataReferencia,
+      competencia: CompetenciaDeRecesso.contendo(dataReferencia, contrato.dataInicio.paraDataLocal()),
       descricao: `Rescisão contratual (+${ganhaCredito ? '2,5' : '0'} crédito) — ${dias} dia(s)`,
       tipo: TipoOcorrencia.credito(),
       quantidade: ganhaCredito ? QuantidadeDeDias.de(valorCredito) : QuantidadeDeDias.nenhuma(),
       autor: AutorDoLancamento.sistema(),
       origem: OrigemDaOcorrencia.automatico(),
-      criadoEm: fimDaVigencia
+      criadoEm: dataReferencia
     });
   }
 
-  zeramento(contrato: Contrato, saldo: number): OcorrenciaDeRecesso {
-    const fimDaVigencia = contrato.dataFim.paraDataLocal();
+  zeramento(contrato: Contrato, dataReferencia: Date, saldo: number): OcorrenciaDeRecesso {
     return new OcorrenciaDeRecesso({
       id: `auto-zeramento-${contrato.identificador()}`,
       codContrato: contrato.identificador(),
-      dataDoCalculo: fimDaVigencia,
-      competencia: CompetenciaDeRecesso.contendo(fimDaVigencia, contrato.dataInicio.paraDataLocal()),
+      dataDoCalculo: dataReferencia,
+      competencia: CompetenciaDeRecesso.contendo(dataReferencia, contrato.dataInicio.paraDataLocal()),
       descricao: 'Encerramento de contrato (zera o saldo atual)',
       tipo: TipoOcorrencia.debito(),
       quantidade: QuantidadeDeDias.de(saldo),
       autor: AutorDoLancamento.sistema(),
       origem: OrigemDaOcorrencia.automatico(),
-      criadoEm: new Date(fimDaVigencia.getTime() + 1000)
+      criadoEm: new Date(dataReferencia.getTime() + 1000)
     });
   }
 }

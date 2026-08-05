@@ -98,8 +98,32 @@ export class MotorDeCreditoMensal {
     const fimDaVigencia = contrato.dataFim.paraDataLocal();
     if (this.agora().getTime() < fimDaVigencia.getTime()) return [];
 
-    const rescisao = this.criarRescisao(contrato, extratoExistente, novasMensalidades);
-    const zeramento = this.criarZeramento(contrato, extratoExistente, [...novasMensalidades, ...rescisao]);
+    return this.criarEncerramento(contrato, extratoExistente, novasMensalidades, fimDaVigencia);
+  }
+
+  /**
+   * Finalização MANUAL e antecipada (botão "Finalizar contrato", liberado a partir de
+   * 30 dias antes do fim da vigência): gera a mesma rescisão/zeramento do encerramento
+   * automático, mas usando hoje como data de referência em vez de aguardar o dataFim.
+   * Idempotente — se já existir rescisão/zeramento para o contrato, não duplica.
+   */
+  gerarEncerramentoAntecipado(
+    contrato: Contrato,
+    extratoExistente: ExtratoDeRecesso
+  ): readonly OcorrenciaDeRecesso[] {
+    return this.criarEncerramento(contrato, extratoExistente, [], this.agora());
+  }
+
+  private criarEncerramento(
+    contrato: Contrato,
+    extratoExistente: ExtratoDeRecesso,
+    novasMensalidades: readonly OcorrenciaDeRecesso[],
+    dataReferencia: Date
+  ): readonly OcorrenciaDeRecesso[] {
+    const rescisao = this.criarRescisao(contrato, extratoExistente, novasMensalidades, dataReferencia);
+    const zeramento = this.criarZeramento(
+      contrato, extratoExistente, [...novasMensalidades, ...rescisao], dataReferencia
+    );
     return [...rescisao, ...zeramento];
   }
 
@@ -107,28 +131,32 @@ export class MotorDeCreditoMensal {
   private criarRescisao(
     contrato: Contrato,
     extratoExistente: ExtratoDeRecesso,
-    novasMensalidades: readonly OcorrenciaDeRecesso[]
+    novasMensalidades: readonly OcorrenciaDeRecesso[],
+    dataReferencia: Date
   ): readonly OcorrenciaDeRecesso[] {
     const id = `auto-rescisao-${contrato.identificador()}`;
     if (extratoExistente.paraArray().some((ocorrencia) => ocorrencia.id === id)) return [];
 
-    const dias = this.diasDesdeUltimoCalculo(contrato, extratoExistente, novasMensalidades);
+    const dias = this.diasDesdeUltimoCalculo(contrato, extratoExistente, novasMensalidades, dataReferencia);
     const ganhaCredito = dias >= 15;
-    return [this.fabrica.rescisao(contrato, { dias, ganhaCredito, valorCredito: CREDITO_MENSAL_BASE })];
+    return [
+      this.fabrica.rescisao(contrato, dataReferencia, { dias, ganhaCredito, valorCredito: CREDITO_MENSAL_BASE })
+    ];
   }
 
-  /** Dias corridos entre o último cálculo (ou o marco inicial) e o fim da vigência. */
+  /** Dias corridos entre o último cálculo (ou o marco inicial) e a data de referência do encerramento. */
   private diasDesdeUltimoCalculo(
     contrato: Contrato,
     extratoExistente: ExtratoDeRecesso,
-    novasMensalidades: readonly OcorrenciaDeRecesso[]
+    novasMensalidades: readonly OcorrenciaDeRecesso[],
+    dataReferencia: Date
   ): number {
     const todas = [...extratoExistente.paraArray(), ...novasMensalidades];
     const inicioMs = this.primeiraCompetenciaCalculada(contrato).data().getTime();
     const ultimaMs = todas.length > 0
       ? Math.max(...todas.map((ocorrencia) => ocorrencia.dataDoCalculo.getTime()))
       : inicioMs;
-    const diffMs = contrato.dataFim.paraDataLocal().getTime() - ultimaMs;
+    const diffMs = dataReferencia.getTime() - ultimaMs;
     return Math.max(0, Math.floor(diffMs / MILISSEGUNDOS_POR_DIA));
   }
 
@@ -136,7 +164,8 @@ export class MotorDeCreditoMensal {
   private criarZeramento(
     contrato: Contrato,
     extratoExistente: ExtratoDeRecesso,
-    ocorrenciasAteRescisao: readonly OcorrenciaDeRecesso[]
+    ocorrenciasAteRescisao: readonly OcorrenciaDeRecesso[],
+    dataReferencia: Date
   ): readonly OcorrenciaDeRecesso[] {
     const id = `auto-zeramento-${contrato.identificador()}`;
     if (extratoExistente.paraArray().some((ocorrencia) => ocorrencia.id === id)) return [];
@@ -144,7 +173,7 @@ export class MotorDeCreditoMensal {
     const saldo = extratoExistente.acrescentar(ocorrenciasAteRescisao).saldoAtual().obterValor();
     if (saldo <= 0) return [];
 
-    return [this.fabrica.zeramento(contrato, saldo)];
+    return [this.fabrica.zeramento(contrato, dataReferencia, saldo)];
   }
 
   private dataLimite(contrato: Contrato): Date {

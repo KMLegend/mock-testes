@@ -1,5 +1,8 @@
 import { OcorrenciaDeRecessoRepository } from '../../application/ports/OcorrenciaDeRecessoRepository';
+import { ContratoRepository } from '../../application/ports/ContratoRepository';
 import { OcorrenciaDeRecesso } from '../../domain/entities/OcorrenciaDeRecesso';
+import { ExtratoDeRecesso } from '../../domain/collections/ExtratoDeRecesso';
+import { MotorDeCreditoMensal } from '../../domain/services/MotorDeCreditoMensal';
 import { AutorDoLancamento } from '../../domain/value-objects/AutorDoLancamento';
 import { CompetenciaDeRecesso } from '../../domain/value-objects/CompetenciaDeRecesso';
 import { OrigemDaOcorrencia } from '../../domain/value-objects/OrigemDaOcorrencia';
@@ -28,8 +31,9 @@ interface OcorrenciaSerializada {
  */
 export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeRecessoRepository {
   private ocorrencias: OcorrenciaDeRecesso[] = [];
+  private readonly motor = new MotorDeCreditoMensal();
 
-  constructor() {
+  constructor(private readonly contratoRepo?: ContratoRepository) {
     this.ocorrencias = this.carregar();
   }
 
@@ -53,6 +57,18 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
     if (ineditas.length === 0) return;
     this.ocorrencias.push(...ineditas);
     this.persistir();
+  }
+
+  async finalizarContratoAntecipadamente(contratoId: string): Promise<void> {
+    if (!this.contratoRepo) throw new Error('Repositório de contratos indisponível para finalização antecipada.');
+
+    const contratos = await this.contratoRepo.todos();
+    const contrato = contratos.find((candidato) => candidato.identificador() === contratoId);
+    if (!contrato) throw new Error('Contrato não encontrado.');
+
+    const extrato = new ExtratoDeRecesso(await this.doContrato(contratoId));
+    const novas = this.motor.gerarEncerramentoAntecipado(contrato, extrato);
+    await this.salvarVarias(novas);
   }
 
   limpar(): void {

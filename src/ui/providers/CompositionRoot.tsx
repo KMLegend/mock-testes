@@ -29,6 +29,7 @@ import { MotorDeCreditoMensal } from '../../domain/services/MotorDeCreditoMensal
 import { ListarContratosParaRecesso } from '../../application/use-cases/ListarContratosParaRecesso';
 import { LancarOcorrenciaDeRecesso } from '../../application/use-cases/LancarOcorrenciaDeRecesso';
 import { ExportarRecesso } from '../../application/use-cases/ExportarRecesso';
+import { FinalizarContratoAntecipadamente } from '../../application/use-cases/FinalizarContratoAntecipadamente';
 import { ExportadorDeRecessoXlsx } from '../../infrastructure/xlsx/ExportadorDeRecessoXlsx';
 import { BaseDeCadastroStore } from '../../infrastructure/mock/cadastro/BaseDeCadastroStore';
 
@@ -64,9 +65,9 @@ export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) =>
     const exportador = new ExportadorXlsx();
 
     // --- Módulo Recesso ---
-    const ocorrenciaRepo = useApi 
-      ? new OcorrenciaDeRecessoRepositoryHttp() 
-      : new OcorrenciaDeRecessoRepositoryEmMemoria();
+    const ocorrenciaRepo = useApi
+      ? new OcorrenciaDeRecessoRepositoryHttp()
+      : new OcorrenciaDeRecessoRepositoryEmMemoria(contratoRepo);
       
     const usuarioAtual = new UsuarioAtualFixo();
     const motorDeCredito = new MotorDeCreditoMensal();
@@ -92,6 +93,7 @@ export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) =>
       lancarOcorrenciaDeRecesso: new LancarOcorrenciaDeRecesso({
         ocorrenciaRepo, contratoRepo, usuarioAtual
       }),
+      finalizarContratoAntecipadamente: new FinalizarContratoAntecipadamente({ ocorrenciaRepo }),
       exportarRecesso: new ExportarRecesso(new ExportadorDeRecessoXlsx()),
       cargaDeCadastro
     };

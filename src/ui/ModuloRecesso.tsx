@@ -24,6 +24,7 @@ export const ModuloRecesso: React.FC<ModuloRecessoProps> = ({ controle, linhas }
         linha={controle.modalAberto === 'extrato' ? controle.selecionada : null}
         onFechar={controle.fechar}
         onLancar={controle.lancar}
+        onFinalizarContrato={controle.finalizarContrato}
       />
       <ModalContrato
         linha={controle.modalAberto === 'contrato' ? controle.selecionada : null}

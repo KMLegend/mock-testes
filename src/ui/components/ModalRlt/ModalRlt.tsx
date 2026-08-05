@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './ModalRlt.module.css';
 import { LinhaDeRecesso } from '../../../application/read-models/LinhaDeRecesso';
 import { DadosDoFormulario, FormularioDeOcorrencia } from './FormularioDeOcorrencia';
@@ -7,10 +7,13 @@ export interface ModalRltProps {
   readonly linha: LinhaDeRecesso | null;
   readonly onFechar: () => void;
   readonly onLancar: (dados: DadosDoFormulario) => Promise<void>;
+  readonly onFinalizarContrato: () => Promise<void>;
 }
 
 /** Extrato de recesso do CONTRATO + Saldo Atual FORA da grade (docs/modulo-recesso/04 §4). */
-export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar }) => {
+export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar, onFinalizarContrato }) => {
+  const [finalizando, setFinalizando] = useState(false);
+
   useEffect(() => {
     const aoTeclar = (evento: KeyboardEvent): void => {
       if (evento.key === 'Escape') onFechar();
@@ -20,6 +23,21 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
   }, [onFechar]);
 
   if (!linha) return null;
+
+  const finalizarContrato = async (): Promise<void> => {
+    const confirmado = window.confirm(
+      `Finalizar o contrato ${linha.contrato.codContrato} agora? ` +
+      'Será lançada a rescisão contratual e o saldo atual será zerado. Esta ação não pode ser desfeita.'
+    );
+    if (!confirmado) return;
+
+    setFinalizando(true);
+    try {
+      await onFinalizarContrato();
+    } finally {
+      setFinalizando(false);
+    }
+  };
 
   const { contrato, fornecedor, extrato } = linha;
   // Mais recente primeiro — mesmo saldo de comSaldoCorrente(), só a ordem de exibição muda.
@@ -43,6 +61,16 @@ export const ModalRlt: React.FC<ModalRltProps> = ({ linha, onFechar, onLancar })
             <p><strong>Razão Social:</strong> {fornecedor.empresa}</p>
             <p><strong>Contrato:</strong> {contrato.codContrato}</p>
             <p><strong>Empresa Vinculada:</strong> {contrato.nomeEmpresaResponsavel}</p>
+            {linha.podeFinalizarAntecipadamente() && (
+              <button
+                type="button"
+                className={styles.botaoFinalizar}
+                onClick={() => void finalizarContrato()}
+                disabled={finalizando}
+              >
+                {finalizando ? 'Finalizando…' : 'Finalizar contrato'}
+              </button>
+            )}
           </div>
 
           <div className={styles.saldoAtual} id="saldo-atual">

@@ -39,6 +39,13 @@ export class OcorrenciaDeRecessoRepositoryHttp implements OcorrenciaDeRecessoRep
     await ApiClient.post('/v2/recesso/creditos-automaticos/processar', {});
   }
 
+  async finalizarContratoAntecipadamente(contratoId: string): Promise<void> {
+    await ApiClient.post(
+      `/v2/recesso/contratos/${encodeURIComponent(contratoId)}/finalizar-antecipadamente`,
+      {}
+    );
+  }
+
   private reconstruirLista(items: any[], codContratoFixo?: string): OcorrenciaDeRecesso[] {
     return items.map(item => new OcorrenciaDeRecesso({
       id: String(item.id),

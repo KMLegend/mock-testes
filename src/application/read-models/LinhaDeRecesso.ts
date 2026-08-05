@@ -3,6 +3,9 @@ import { Fornecedor } from '../../domain/entities/Fornecedor';
 import { ExtratoDeRecesso } from '../../domain/collections/ExtratoDeRecesso';
 import { SaldoDeDias } from '../../domain/value-objects/SaldoDeDias';
 
+const MILISSEGUNDOS_POR_DIA = 1000 * 60 * 60 * 24;
+const DIAS_ANTES_DO_FIM_PARA_FINALIZAR = 30;
+
 export interface PropsLinhaDeRecesso {
   readonly contrato: Contrato;
   readonly fornecedor: Fornecedor;
@@ -32,6 +35,27 @@ export class LinhaDeRecesso {
   /** Fora da vigência do contrato OU inativo no cadastro do ERP. */
   estaInativo(): boolean {
     return !this.props.contrato.estaVigente(this.props.hoje) || !this.props.fornecedor.ativo;
+  }
+
+  /**
+   * Botão "Finalizar contrato": liberado a partir de 30 dias antes do fim da vigência,
+   * enquanto o contrato ainda estiver vigente e não houver encerramento já lançado
+   * (o encerramento natural, pós-dataFim, já é feito automaticamente pelo motor).
+   */
+  podeFinalizarAntecipadamente(): boolean {
+    if (!this.props.contrato.estaVigente(this.props.hoje)) return false;
+    if (!this.props.contrato.temPrazoDeterminado) return false;
+    if (this.jaEncerrado()) return false;
+
+    const diasParaOFim = Math.floor(
+      (this.props.contrato.dataFim.paraDataLocal().getTime() - this.props.hoje.getTime()) / MILISSEGUNDOS_POR_DIA
+    );
+    return diasParaOFim <= DIAS_ANTES_DO_FIM_PARA_FINALIZAR;
+  }
+
+  private jaEncerrado(): boolean {
+    const id = `auto-rescisao-${this.props.contrato.identificador()}`;
+    return this.props.extrato.paraArray().some((ocorrencia) => ocorrencia.id === id);
   }
 
   motivoDaInatividade(): string {
