@@ -71,6 +71,23 @@ describe('Carga de cadastro — validação da planilha', () => {
     expect(base.contratos[0]!.dataInicio.raw()).toBe('2023-03-15');
   });
 
+  it('data_inicio/data_fim como célula de DATA real do Excel (não texto) é aceita', () => {
+    // Reproduz o caso do usuário: célula formatada como data no Excel (não texto ISO/BR digitado),
+    // que o SheetJS antes extraía com formatação ambígua (ex.: ordem mês/dia americana) e quebrava
+    // o regex de data BR. Com cellDates:true, a célula chega como objeto Date.
+    const contratoComDatasReais = [
+      CNPJ_OK, 'C-1', 'Contrato', new Date(2025, 7, 15), new Date(2026, 7, 15), '5000', '001', 'CITY'
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([CAB_FORN, FORN_OK]), 'Fornecedores');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([CAB_CONTR, contratoComDatasReais]), 'Contratos');
+    const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+
+    const { base, erros } = validar(lerAbas(buffer));
+    expect(erros).toHaveLength(0);
+    expect(base.contratos[0]!.dataInicio.raw()).toBe('2025-08-15');
+  });
+
   it('data_fim vazia é aceita (sem prazo definido), não gera erro', () => {
     const contratoSemFim = [CNPJ_OK, 'C-1', 'Contrato', '2023-03-15', '', '5000', '001', 'CITY'];
     const { erros } = validarPlanilha([FORN_OK], [contratoSemFim]);
