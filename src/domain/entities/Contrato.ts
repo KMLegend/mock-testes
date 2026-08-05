@@ -38,6 +38,11 @@ export class Contrato {
     return this.props.codEmpresa === codEmpresa;
   }
 
+  /** Imutável: usado na finalização antecipada, que encurta a vigência para hoje. */
+  comDataFim(novaDataFim: DataHora): Contrato {
+    return new Contrato({ ...this.props, dataFim: novaDataFim });
+  }
+
   /**
    * Chave do contrato nos lançamentos de recesso. Composta porque `codContrato`
    * vem do ERP numerado por empresa ("101", "102") e não é único isoladamente.

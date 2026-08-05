@@ -67,7 +67,7 @@ export const CompositionRoot: React.FC<CompositionRootProps> = ({ children }) =>
     // --- Módulo Recesso ---
     const ocorrenciaRepo = useApi
       ? new OcorrenciaDeRecessoRepositoryHttp()
-      : new OcorrenciaDeRecessoRepositoryEmMemoria(contratoRepo);
+      : new OcorrenciaDeRecessoRepositoryEmMemoria(cadastroStore);
       
     const usuarioAtual = new UsuarioAtualFixo();
     const motorDeCredito = new MotorDeCreditoMensal();

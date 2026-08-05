@@ -1,13 +1,14 @@
 import { OcorrenciaDeRecessoRepository } from '../../application/ports/OcorrenciaDeRecessoRepository';
-import { ContratoRepository } from '../../application/ports/ContratoRepository';
 import { OcorrenciaDeRecesso } from '../../domain/entities/OcorrenciaDeRecesso';
 import { ExtratoDeRecesso } from '../../domain/collections/ExtratoDeRecesso';
 import { MotorDeCreditoMensal } from '../../domain/services/MotorDeCreditoMensal';
 import { AutorDoLancamento } from '../../domain/value-objects/AutorDoLancamento';
 import { CompetenciaDeRecesso } from '../../domain/value-objects/CompetenciaDeRecesso';
+import { DataHora } from '../../domain/value-objects/DataHora';
 import { OrigemDaOcorrencia } from '../../domain/value-objects/OrigemDaOcorrencia';
 import { QuantidadeDeDias } from '../../domain/value-objects/QuantidadeDeDias';
 import { TipoOcorrencia } from '../../domain/value-objects/TipoOcorrencia';
+import { BaseDeCadastroStore } from './cadastro/BaseDeCadastroStore';
 
 // v5: encerramentos/rescisões automáticas são vinculados estritamente à vigência real do contrato
 const CHAVE_ARMAZENAMENTO = 'nf-pjs:recesso:ocorrencias:v5';
@@ -33,7 +34,7 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
   private ocorrencias: OcorrenciaDeRecesso[] = [];
   private readonly motor = new MotorDeCreditoMensal();
 
-  constructor(private readonly contratoRepo?: ContratoRepository) {
+  constructor(private readonly cadastroStore?: BaseDeCadastroStore) {
     this.ocorrencias = this.carregar();
   }
 
@@ -60,15 +61,21 @@ export class OcorrenciaDeRecessoRepositoryEmMemoria implements OcorrenciaDeReces
   }
 
   async finalizarContratoAntecipadamente(contratoId: string): Promise<void> {
-    if (!this.contratoRepo) throw new Error('Repositório de contratos indisponível para finalização antecipada.');
+    if (!this.cadastroStore) throw new Error('Store de cadastro indisponível para finalização antecipada.');
 
-    const contratos = await this.contratoRepo.todos();
+    const contratos = this.cadastroStore.contratos().filter((candidato) => !candidato.ehDeletado);
     const contrato = contratos.find((candidato) => candidato.identificador() === contratoId);
     if (!contrato) throw new Error('Contrato não encontrado.');
 
     const extrato = new ExtratoDeRecesso(await this.doContrato(contratoId));
     const novas = this.motor.gerarEncerramentoAntecipado(contrato, extrato);
     await this.salvarVarias(novas);
+
+    // Encurta a vigência para hoje — sem isso o contrato continua "Ativo" nas grades
+    // mesmo depois de encerrado e com o saldo já zerado.
+    const hoje = new Date();
+    const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    this.cadastroStore.atualizarDataFimDoContrato(contratoId, DataHora.de(iso));
   }
 
   limpar(): void {

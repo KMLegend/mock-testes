@@ -9,6 +9,8 @@ import { QuantidadeDeDias } from '../../src/domain/value-objects/QuantidadeDeDia
 import { SaldoDeDias } from '../../src/domain/value-objects/SaldoDeDias';
 import { TipoOcorrencia } from '../../src/domain/value-objects/TipoOcorrencia';
 import { LinhaDeRecesso } from '../../src/application/read-models/LinhaDeRecesso';
+import { BaseDeCadastroStore } from '../../src/infrastructure/mock/cadastro/BaseDeCadastroStore';
+import { OcorrenciaDeRecessoRepositoryEmMemoria } from '../../src/infrastructure/mock/OcorrenciaDeRecessoRepositoryEmMemoria';
 
 const HOJE = new Date(2026, 6, 17); // 17/07/2026
 const agora = (): Date => HOJE;
@@ -172,6 +174,22 @@ const fornecedor = new Fornecedor({
   tipoInscricao: 'PJ',
   cnpj: { obterDigitos: () => '12345678000190' } as any,
   ativo: true
+});
+
+describe('OcorrenciaDeRecessoRepositoryEmMemoria.finalizarContratoAntecipadamente', () => {
+  it('encurta a vigência do contrato para hoje — deixa de aparecer como Ativo', async () => {
+    localStorage.clear();
+    const store = new BaseDeCadastroStore();
+    const c = contrato('2023-03-15', '2027-12-31'); // vigência bem no futuro
+    store.substituir({ fornecedores: [], contratos: [c] });
+
+    const repo = new OcorrenciaDeRecessoRepositoryEmMemoria(store);
+    await repo.finalizarContratoAntecipadamente(c.identificador());
+
+    const atualizado = store.contratos().find((x) => x.identificador() === c.identificador())!;
+    expect(atualizado.estaVigente(new Date())).toBe(false);
+    expect(atualizado.temPrazoDeterminado).toBe(true);
+  });
 });
 
 describe('LinhaDeRecesso.podeFinalizarAntecipadamente', () => {

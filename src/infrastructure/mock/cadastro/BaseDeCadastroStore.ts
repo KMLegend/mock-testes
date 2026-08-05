@@ -1,5 +1,6 @@
 import { Fornecedor } from '../../../domain/entities/Fornecedor';
 import { Contrato } from '../../../domain/entities/Contrato';
+import { DataHora } from '../../../domain/value-objects/DataHora';
 import { mockFornecedoresData, mockContratosData } from '../dados/mockData';
 import {
   FornecedorSerializado,
@@ -81,6 +82,14 @@ export class BaseDeCadastroStore {
     const novas = new Set(chavesNovas);
     const removidosDaBaseAnterior = [...antigas].filter((chave) => !novas.has(chave)).length;
     return { importados: chavesNovas.length, removidosDaBaseAnterior };
+  }
+
+  /** Encurta a vigência do contrato (finalização antecipada — docs/modulo-recesso). */
+  atualizarDataFimDoContrato(contratoId: string, novaDataFim: DataHora): void {
+    this.contratosAtuais = this.contratosAtuais.map((contrato) =>
+      contrato.identificador() === contratoId ? contrato.comDataFim(novaDataFim) : contrato
+    );
+    this.persistir();
   }
 
   /** Volta aos dados de exemplo (útil na demo). */
