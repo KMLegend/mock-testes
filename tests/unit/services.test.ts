@@ -142,6 +142,37 @@ describe('Domain Services', () => {
       expect(lista[0]?.status.paraExibicao()).toBe('Pendente');
     });
 
+    it('linkChamado aponta pro console do Tomticket (usando o id), não pra uma URL inexistente', () => {
+      // Regressão: 'https://city.tomticket.com/chamado/<id>' não existe (404).
+      const chamado = new Chamado({
+        id: 'f8c8795825dbb2a2435ccd820083de8b',
+        protocolo: '19166',
+        assunto: 'Nota Fiscal Julho',
+        dataCriacao: DataHora.de('2026-07-22 14:10:30'),
+        dataFinalizacao: null,
+        nomeSolicitante: 'Carlos Santos',
+        email: Email.de('carlos.santos@cityinc.com.br'),
+        situacaoId: '2',
+        situacaoDescricao: 'Em Andamento',
+        categoriaId: 'cat1',
+        categoriaNome: 'Recebimento',
+        tipoLancamento: TipoLancamento.de('Ambas'),
+        mesReferente: Competencia.de('07', '2026'),
+        cnpjAnexo: null
+      });
+
+      const resultado = MotorDeStatus.processar({
+        fornecedores: [fornecedorCarlos],
+        chamados: [chamado],
+        contratos: [contrato101],
+        cnpjTomadores
+      });
+
+      expect(resultado.paraArray()[0]?.linkChamado).toBe(
+        'https://console.tomticket.com/dashboard/ticket/history/f8c8795825dbb2a2435ccd820083de8b'
+      );
+    });
+
     it('não deve incluir fornecedores inativos', () => {
       const resultado = MotorDeStatus.processar({
         fornecedores: [fornecedorInativo],

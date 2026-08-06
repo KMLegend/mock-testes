@@ -8,7 +8,8 @@ import { DataHora } from '../value-objects/DataHora';
 import { TipoLancamento } from '../value-objects/TipoLancamento';
 import { Cnpj } from '../value-objects/Cnpj';
 
-const TOMTICKET_BASE_URL = 'https://city.tomticket.com/chamado/';
+// URL real do console do Tomticket — 'https://city.tomticket.com/chamado/<id>' não existe (404).
+const TOMTICKET_BASE_URL = 'https://console.tomticket.com/dashboard/ticket/history/';
 
 export interface ContextoProcessamento {
   readonly fornecedores: readonly Fornecedor[];
