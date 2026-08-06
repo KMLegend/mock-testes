@@ -23,11 +23,6 @@ export class Contrato {
   get valorMensal(): number { return this.props.valorMensal; }
   get empresaResponsavel(): string { return this.props.empresaResponsavel; }
   get nomeEmpresaResponsavel(): string { return this.props.nomeEmpresaResponsavel; }
-
-  /** "cód | nome" — como a empresa vinculada (tomadora) deve aparecer nas grades. */
-  get empresaVinculadaParaExibicao(): string {
-    return `${this.props.empresaResponsavel} | ${this.props.nomeEmpresaResponsavel}`;
-  }
   get isDeletedAt(): string | null { return this.props.isDeletedAt ?? null; }
   
   get temPrazoDeterminado(): boolean {

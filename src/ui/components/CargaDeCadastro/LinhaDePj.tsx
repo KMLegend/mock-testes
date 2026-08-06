@@ -50,7 +50,10 @@ const DetalhesDosContratos: React.FC<{ item: ItemBasePj; hoje: Date }> = ({ item
                 <tr key={contrato.identificador()}>
                   <td className={styles.mono}>{contrato.codContrato}</td>
                   <td>{contrato.nomeContrato}</td>
-                  <td>{contrato.empresaVinculadaParaExibicao}</td>
+                  <td>
+                    <div>{contrato.nomeEmpresaResponsavel}</div>
+                    <div className={`${styles.subtitulo} ${styles.mono}`}>{contrato.empresaResponsavel}</div>
+                  </td>
                   <td>
                     {contrato.dataInicio.paraFormatadoCurto()} até{' '}
                     {contrato.dataFimParaExibicao}
