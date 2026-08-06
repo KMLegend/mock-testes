@@ -13,8 +13,11 @@ export class ContratoRepositoryHttp implements ContratoRepository {
       dataInicio: DataHora.de(item.data_inicio),
       dataFim: DataHora.de(item.data_fim || '9999-12-31'),
       valorMensal: item.valor_mensal || 0,
-      empresaResponsavel: item.cod_empresa,
-      nomeEmpresaResponsavel: item.nome_fornecedor,
+      // Empresa VINCULADA (tomadora do serviço) — não confundir com o próprio prestador
+      // (item.cod_empresa/item.nome_fornecedor identificam o PJ dono do contrato, não a
+      // empresa pra qual ele presta serviço).
+      empresaResponsavel: item.empresa_vinculada_codigo || '',
+      nomeEmpresaResponsavel: item.empresa_vinculada_nome || '',
       isDeletedAt: item.is_delete ? new Date().toISOString() : null
     }));
   }
