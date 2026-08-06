@@ -4,8 +4,16 @@ export function ehEmailValido(valor: string): boolean {
   return FORMATO_EMAIL.test(valor.trim());
 }
 
+/**
+ * Extrai os dígitos do CNPJ. Espelha `_normalizar_cnpj` em `app/api/v2/prestadores.py`: quando o
+ * usuário digita o CNPJ direto na célula do Excel sem formatá-la como texto, o zero à esquerda
+ * some (número não tem zero à esquerda) — só é seguro reconstruir quando falta exatamente 1
+ * dígito (13 em vez de 14); um valor mais curto que isso é erro de digitação de verdade, não
+ * zero perdido, e não deve ser mascarado.
+ */
 export function digitosCnpj(valor: string): string {
-  return valor.replace(/\D/g, '');
+  const digitos = valor.replace(/\D/g, '');
+  return digitos.length === 13 ? digitos.padStart(14, '0') : digitos;
 }
 
 interface PadraoDeData {

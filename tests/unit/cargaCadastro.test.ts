@@ -4,6 +4,7 @@ import { lerAbas } from '../../src/infrastructure/mock/cadastro/lerPlanilha';
 import { validar } from '../../src/infrastructure/mock/cadastro/validarPlanilha';
 import { BaseDeCadastroStore } from '../../src/infrastructure/mock/cadastro/BaseDeCadastroStore';
 import { CargaDeCadastroMock } from '../../src/infrastructure/mock/cadastro/CargaDeCadastroMock';
+import { digitosCnpj } from '../../src/infrastructure/mock/cadastro/validadores';
 
 // A-37: cod_empresa não é mais coluna (gerado pelo sistema a partir do CNPJ). Contratos vincula
 // ao fornecedor por `cnpj`, não por `cod_empresa`.
@@ -45,6 +46,17 @@ describe('Carga de cadastro — validação da planilha', () => {
     const { base } = validarPlanilha([FORN_OK], [contrato(CNPJ_OK, 'C-1')]);
     expect(base.fornecedores[0]!.codEmpresa).toBe('1'); // base vazia → primeira empresa = "1"
     expect(base.contratos[0]!.codEmpresa).toBe('1'); // contrato resolvido pro mesmo código, via CNPJ
+  });
+
+  it('digitosCnpj recupera o zero à esquerda perdido quando falta exatamente 1 dígito', () => {
+    // Espelha app/api/v2/prestadores.py::_normalizar_cnpj — mesma regra, mesmo motivo:
+    // CNPJ digitado numa célula NÚMERO no Excel perde o zero à esquerda (ex.: '01231230001000'
+    // vira o número 1231230001000, 13 dígitos), e o Excel ainda mostra em notação científica.
+    expect(digitosCnpj('1231230001000')).toBe('01231230001000');
+  });
+
+  it('digitosCnpj NÃO completa um valor curto demais (erro de digitação de verdade)', () => {
+    expect(digitosCnpj('123')).toBe('123'); // continua reprovado depois pela validação de tamanho
   });
 
   it('CNPJ com menos de 14 dígitos é reprovado com linha e campo', () => {
