@@ -48,6 +48,7 @@ Fonte da verdade dos fornecedores, **populada a partir do ERP HCM/planilha**. Ca
 | `nome` | string | Sim | Razão social / nome do prestador |
 | `email` | string | Sim | E-mail usado para casar com chamados do Tomticket — UNIQUE absoluta |
 | `cnpj` | string (14) | Sim | CNPJ do prestador |
+| `responsavel_legal` | string | Não | **Pessoa** responsável legal do PJ (não a razão social) — adicionada em `migration_2026_08_06_prestador_responsavel_legal.sql` |
 | `tipo_lancamento_esperado` | enum | Não | `Ambas` \| `Contratual` \| `Reembolso plano de saúde` — o que se espera daquele PJ |
 | `is_delete` | BIT | Sim | Soft delete (default 0) |
 | `data_inclusao` | DATETIME2(7) | Sim | Auditoria |

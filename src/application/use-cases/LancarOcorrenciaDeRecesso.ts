@@ -52,8 +52,12 @@ export class LancarOcorrenciaDeRecesso {
         id: `man-${this.relogio()().getTime()}`,
         codContrato: contrato.identificador(),
         dataDoCalculo: data,
-        // Derivada da data e do dia base — o usuário NÃO digita competência (02 §4.5)
-        competencia: CompetenciaDeRecesso.contendo(data, contrato.dataInicio.paraDataLocal()),
+        // Mês CALENDÁRIO da data lançada — o usuário NÃO digita competência (02 §4.5).
+        // NÃO usar contendo()/dia-base do contrato aqui: aquilo ancora no aniversário mensal
+        // do contrato (correto pro crédito AUTOMÁTICO), mas pra lançamento manual empurrava a
+        // competência pro mês ANTERIOR sempre que o dia lançado vinha antes do dia-base
+        // (ex.: mês corrente 08/2026, dia-base 31 → contendo() devolvia 31/07/2026).
+        competencia: CompetenciaDeRecesso.apartirDe(data),
         descricao,
         tipo,
         quantidade,

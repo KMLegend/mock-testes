@@ -11,6 +11,9 @@ import { TipoOcorrencia } from '../../src/domain/value-objects/TipoOcorrencia';
 import { LinhaDeRecesso } from '../../src/application/read-models/LinhaDeRecesso';
 import { BaseDeCadastroStore } from '../../src/infrastructure/mock/cadastro/BaseDeCadastroStore';
 import { OcorrenciaDeRecessoRepositoryEmMemoria } from '../../src/infrastructure/mock/OcorrenciaDeRecessoRepositoryEmMemoria';
+import { LancarOcorrenciaDeRecesso } from '../../src/application/use-cases/LancarOcorrenciaDeRecesso';
+import { ContratoRepository } from '../../src/application/ports/ContratoRepository';
+import { UsuarioAtual } from '../../src/application/ports/UsuarioAtual';
 
 const HOJE = new Date(2026, 6, 17); // 17/07/2026
 const agora = (): Date => HOJE;
@@ -141,8 +144,10 @@ describe('MotorDeCreditoMensal', () => {
 describe('MotorDeCreditoMensal — finalização antecipada (botão "Finalizar contrato")', () => {
   const motor = new MotorDeCreditoMensal(agora);
 
-  it('gera rescisão + zeramento antes do fim da vigência, usando hoje como referência', () => {
-    // vigência só termina em 2027, mas a finalização é acionada hoje (17/07/2026)
+  it('gera rescisão + zeramento antes do fim da vigência, usando a dataFim REAL do contrato — não a data do clique', () => {
+    // vigência só termina em 2027, mas a finalização é acionada hoje (17/07/2026): o cálculo
+    // (data do lançamento, dias proporcionais) tem que dar o MESMO resultado que sairia
+    // automaticamente em 31/12/2027, não o que sairia se calculado "hoje".
     const c = contrato('2023-03-15', '2027-12-31');
     const jaCreditado = new ExtratoDeRecesso(motor.gerarPara(c, ExtratoDeRecesso.vazio()));
 
@@ -151,7 +156,8 @@ describe('MotorDeCreditoMensal — finalização antecipada (botão "Finalizar c
     const zeramento = gerados.find((g) => g.id === `auto-zeramento-${c.identificador()}`);
 
     expect(rescisao).toBeDefined();
-    expect(rescisao!.dataDoCalculo.getTime()).toBe(HOJE.getTime());
+    expect(rescisao!.dataDoCalculo.getTime()).toBe(c.dataFim.paraDataLocal().getTime());
+    expect(rescisao!.dataDoCalculo.getTime()).not.toBe(HOJE.getTime());
     expect(zeramento).toBeDefined();
     expect(zeramento!.tipo.ehDebito()).toBe(true);
     expect(jaCreditado.acrescentar(gerados).saldoAtual().obterValor()).toBe(0);
@@ -189,6 +195,38 @@ describe('OcorrenciaDeRecessoRepositoryEmMemoria.finalizarContratoAntecipadament
     const atualizado = store.contratos().find((x) => x.identificador() === c.identificador())!;
     expect(atualizado.estaVigente(new Date())).toBe(false);
     expect(atualizado.temPrazoDeterminado).toBe(true);
+  });
+});
+
+describe('LancarOcorrenciaDeRecesso — competência do lançamento manual', () => {
+  it('usa o mês CALENDÁRIO da data lançada, não o dia-base do contrato (regressão)', async () => {
+    // Contrato com dia-base 31 (dataInicio dia 31): antes da correção, contendo() empurrava
+    // qualquer lançamento antes do dia 31 pro mês anterior — ex.: lançar em 05/08/2026 virava
+    // competência 31/07/2026, mesmo com "mês atual" sendo 08/2026.
+    const c = contrato('2023-01-31', '2027-12-31');
+    const contratoRepo: ContratoRepository = { todos: async () => [c] };
+    const usuarioAtual: UsuarioAtual = { identificar: async () => ({ login: 'kevin', nome: 'Kevin' }) };
+    const salvos: { competencia: string }[] = [];
+    const ocorrenciaRepo = {
+      salvar: async (oc: { competencia: { paraExibicao(): string } }) => {
+        salvos.push({ competencia: oc.competencia.paraExibicao() });
+      }
+    } as any;
+
+    const lancar = new LancarOcorrenciaDeRecesso({
+      ocorrenciaRepo, contratoRepo, usuarioAtual, agora: () => new Date(2026, 7, 5)
+    });
+
+    await lancar.executar({
+      contratoId: c.identificador(),
+      dataDaOcorrencia: '2026-08-05',
+      descricao: 'Recesso gozado',
+      tipo: 'Debito',
+      quantidade: '2,5'
+    });
+
+    expect(salvos).toHaveLength(1);
+    expect(salvos[0]!.competencia).toBe('05/08/2026'); // mês de agosto, não julho
   });
 });
 

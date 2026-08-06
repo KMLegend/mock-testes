@@ -20,6 +20,7 @@ interface ColunaExemplo {
 const COLUNAS_FORNECEDORES: readonly ColunaExemplo[] = [
   { nome: 'razao_social', obrigatorio: true, aceita: 'Texto livre', exemplo: 'KEVIN MAYKEL AGOSTINHO GOMES LTDA' },
   { nome: 'nome_fantasia', obrigatorio: false, aceita: 'Texto livre', exemplo: 'KEVIN MAYKEL' },
+  { nome: 'responsavel_legal', obrigatorio: false, aceita: 'Texto livre — pessoa responsável legal do PJ (não a razão social)', exemplo: 'Kevin Maykel Agostinho Gomes' },
   { nome: 'email', obrigatorio: true, aceita: 'E-mail — chave de casamento com o Tomticket', exemplo: 'kevin.maykel@cityinc.com.br' },
   { nome: 'cnpj', obrigatorio: true, aceita: '14 dígitos, com ou sem máscara', exemplo: '12.345.678/9012-34' },
   { nome: 'tipo_inscricao', obrigatorio: false, aceita: 'Código do HCM (ex.: "1")', exemplo: '1' },

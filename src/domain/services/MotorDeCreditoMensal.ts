@@ -104,14 +104,16 @@ export class MotorDeCreditoMensal {
   /**
    * Finalização MANUAL e antecipada (botão "Finalizar contrato", liberado a partir de
    * 30 dias antes do fim da vigência): gera a mesma rescisão/zeramento do encerramento
-   * automático, mas usando hoje como data de referência em vez de aguardar o dataFim.
+   * automático, disparada antes da hora — mas o CÁLCULO (dias proporcionais, data do
+   * lançamento) usa a `dataFim` REAL do contrato, não a data em que o botão foi apertado,
+   * para dar o mesmo resultado financeiro que sairia automaticamente na data_fim natural.
    * Idempotente — se já existir rescisão/zeramento para o contrato, não duplica.
    */
   gerarEncerramentoAntecipado(
     contrato: Contrato,
     extratoExistente: ExtratoDeRecesso
   ): readonly OcorrenciaDeRecesso[] {
-    return this.criarEncerramento(contrato, extratoExistente, [], this.agora());
+    return this.criarEncerramento(contrato, extratoExistente, [], contrato.dataFim.paraDataLocal());
   }
 
   private criarEncerramento(

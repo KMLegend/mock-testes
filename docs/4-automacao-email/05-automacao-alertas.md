@@ -36,9 +36,9 @@ consta na **Tabela Fato** para a competência corrente **e** quem já recebeu aq
 
 ## 2. Regras de tempo (normativo)
 
-**`D` é definido por variável de `.env`** (A-20). Os offsets são **dias corridos**. **Não há
-validação de dia útil/feriado** — apenas calcula-se `D-3`, `D`, `D+1`, `D+3` (a chance de cair em dia
-não útil é baixa e aceita).
+**`D` é definido por variável de `.env`** (A-20). Os offsets **D-3/D+1/D+3** em torno de `D` são
+**dias corridos** (3/1/3 dias corridos antes/depois da data de `D`). **A própria data de `D`**,
+porém, volta a considerar dia útil — ver A-38 abaixo.
 
 | Regra | Momento | Tipo |
 |---|---|---|
@@ -47,12 +47,30 @@ não útil é baixa e aceita).
 | **D+1** | 1 dia corrido após `D` | Cobrança |
 | **D+3** | 3 dias corridos após `D` | Cobrança |
 
-> A regra "1º dia útil do mês" do plano original foi **removida** (A-15): não há mais lógica de dia
-> útil, e `D` (≈ dia 1 do mês seguinte à competência) já cobre o marco de prazo.
+> ~~A regra "1º dia útil do mês" do plano original foi removida (A-15)~~ — **revertido parcialmente
+> por A-38** (pedido explícito do usuário): `D` volta a ser calculado como o **N-ésimo dia ÚTIL**
+> do mês (pula sábado/domingo; sem calendário de feriados), não mais um dia fixo do calendário.
+> Os offsets D-3/D+1/D+3 continuam em dias corridos a partir dessa data. Implementado em
+> `enesimo_dia_util()`/`calcular_regra_do_dia()` em `app/workers/alertas_scheduler.py`.
 
 ### 2.1 Como `D` é obtido (config `.env`)
 
-`D` = **dia 1 do mês seguinte à competência**, parametrizado. Exemplo de variáveis:
+**A-38 (atual):** `D` = o `ALERTAS_PRAZO_DIA`-ésimo dia **útil** do mês corrente (1 = 1º dia útil,
+5 = 5º dia útil etc. — pula sábado/domingo). Variável real lida pelo código
+(`app/core/config.py::Settings.alertas_prazo_dia`):
+```
+ALERTAS_PRAZO_DIA=1    # N-ésimo dia útil do mês
+```
+Exemplo: agosto/2026 começa num sábado (01/08) → com `ALERTAS_PRAZO_DIA=1`, `D = 03/08` (segunda,
+1º dia útil), não mais `01/08`.
+
+> ⚠️ **Nomes de variável divergentes do texto original desta seção** (`PRAZO_DIA`/`PRAZO_MES_OFFSET`,
+> abaixo): aquele desenho nunca foi implementado. O código real usa apenas `ALERTAS_PRAZO_DIA`
+> (dia útil do MÊS CORRENTE, sem offset de mês) e `ALERTAS_REMETENTE`. Texto original mantido só
+> como referência histórica do desenho pretendido:
+
+`D` = **dia 1 do mês seguinte à competência**, parametrizado. Exemplo de variáveis (não
+implementadas):
 ```
 PRAZO_DIA=1            # dia do mês
 PRAZO_MES_OFFSET=1     # meses após a competência (1 = mês seguinte)

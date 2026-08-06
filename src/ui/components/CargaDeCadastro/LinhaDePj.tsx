@@ -37,7 +37,7 @@ const DetalhesDosContratos: React.FC<{ item: ItemBasePj; hoje: Date }> = ({ item
             <tr>
               <th>Nº Contrato</th>
               <th>Descrição / Nome</th>
-              <th>Empresa Responsável</th>
+              <th>Empresa Vinculada</th>
               <th>Vigência</th>
               <th>Valor Mensal</th>
               <th>Status</th>
@@ -50,7 +50,7 @@ const DetalhesDosContratos: React.FC<{ item: ItemBasePj; hoje: Date }> = ({ item
                 <tr key={contrato.identificador()}>
                   <td className={styles.mono}>{contrato.codContrato}</td>
                   <td>{contrato.nomeContrato}</td>
-                  <td>{contrato.nomeEmpresaResponsavel}</td>
+                  <td>{contrato.empresaVinculadaParaExibicao}</td>
                   <td>
                     {contrato.dataInicio.paraFormatadoCurto()} até{' '}
                     {contrato.dataFimParaExibicao}

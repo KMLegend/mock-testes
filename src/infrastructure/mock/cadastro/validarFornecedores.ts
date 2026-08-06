@@ -18,10 +18,12 @@ function texto(valores: Valores, chave: string): string {
   return valores[chave] ?? '';
 }
 
-function checagens(valores: Valores, cnpjDuplicadoNaPlanilha: boolean) {
+function checagens(valores: Valores, cnpjDuplicadoNaPlanilha: boolean, emailDuplicadoNaPlanilha: boolean) {
   return [
     { campo: 'razao_social', invalido: texto(valores, 'razao_social') === '', motivo: 'obrigatório' },
     { campo: 'email', invalido: !ehEmailValido(texto(valores, 'email')), motivo: 'e-mail inválido' },
+    // UQ_DPE_GPJ_PRESTADOR_EMAIL no backend: barra aqui pra não estourar erro de banco no envio real.
+    { campo: 'email', invalido: emailDuplicadoNaPlanilha, motivo: 'e-mail duplicado nesta planilha' },
     { campo: 'cnpj', invalido: digitosCnpj(texto(valores, 'cnpj')).length !== 14, motivo: 'deve ter 14 dígitos' },
     { campo: 'cnpj', invalido: cnpjDuplicadoNaPlanilha, motivo: 'CNPJ duplicado nesta planilha' },
     { campo: 'ativo', invalido: textoParaBooleano(texto(valores, 'ativo')) === null, motivo: 'use Sim ou Não' }
@@ -66,11 +68,14 @@ export function validarFornecedores(
   const validos: Fornecedor[] = [];
   const erros: ErroDeImportacao[] = [];
   const cnpjParaCodEmpresa = new Map<string, string>();
+  const emailsNestaPlanilha = new Set<string>();
 
   linhas.forEach((linha) => {
     const cnpj = digitosCnpj(texto(linha.valores, 'cnpj'));
+    const email = texto(linha.valores, 'email').trim().toLowerCase();
     const jaNestaPlanilha = cnpj.length === 14 && cnpjParaCodEmpresa.has(cnpj);
-    const invalidas = checagens(linha.valores, jaNestaPlanilha).filter((item) => item.invalido);
+    const emailJaNestaPlanilha = email !== '' && emailsNestaPlanilha.has(email);
+    const invalidas = checagens(linha.valores, jaNestaPlanilha, emailJaNestaPlanilha).filter((item) => item.invalido);
 
     if (invalidas.length > 0) {
       erros.push(...invalidas.map((item) => ({
@@ -81,6 +86,7 @@ export function validarFornecedores(
 
     const codEmpresa = cnpjExistente.get(cnpj) ?? String(++proximoCodEmpresa);
     cnpjParaCodEmpresa.set(cnpj, codEmpresa);
+    emailsNestaPlanilha.add(email);
     validos.push(construir(linha.valores, codEmpresa, cnpj));
   });
 
