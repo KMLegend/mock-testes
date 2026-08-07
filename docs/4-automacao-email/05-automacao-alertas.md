@@ -36,9 +36,9 @@ consta na **Tabela Fato** para a competência corrente **e** quem já recebeu aq
 
 ## 2. Regras de tempo (normativo)
 
-**`D` é definido por variável de `.env`** (A-20). Os offsets **D-3/D+1/D+3** em torno de `D` são
-**dias corridos** (3/1/3 dias corridos antes/depois da data de `D`). **A própria data de `D`**,
-porém, volta a considerar dia útil — ver A-38 abaixo.
+**`D` é definido por variável de `.env`** (A-20). Os offsets **D-3/D+1/D+3/D+5** em torno de `D`
+são **dias corridos** (podem cair em fim de semana). **A própria data de `D`**, porém, volta a
+considerar dia útil — ver A-38 abaixo.
 
 | Regra | Momento | Tipo |
 |---|---|---|
@@ -46,6 +46,19 @@ porém, volta a considerar dia útil — ver A-38 abaixo.
 | **D** | data-prazo (config `.env`) | Preventivo |
 | **D+1** | 1 dia corrido após `D` | Cobrança |
 | **D+3** | 3 dias corridos após `D` | Cobrança |
+| **D+5** | 5 dias corridos após `D` (A-40) | Cobrança |
+| **CORTE-10** | **dia 10** do mês, fixo (A-40) | Prazo final |
+
+**`CORTE-10` (A-40):** dia de corte do pagamento — a mensagem avisa que nota entregue após o dia
+10 **não é paga naquela competência**. É a única regra com teor de prazo final; as demais são
+lembrete/cobrança de entrega. Texto montado em `alertas_scheduler.py::montar_mensagem`.
+
+> **Precedência:** o corte vence qualquer offset coincidente. Com `ALERTAS_PRAZO_DIA` maior
+> (ex.: 5), `D+3` pode cair exatamente no dia 10 — nesse caso vale o aviso de corte, que é a
+> informação mais importante para o prestador.
+
+Exemplo real (agosto/2026, `ALERTAS_PRAZO_DIA=1` — dia 1º caiu num sábado, então `D` = 03/08):
+`D-3` = 31/07 · `D` = 03/08 · `D+1` = 04/08 · `D+3` = 06/08 · `D+5` = 08/08 · corte = 10/08.
 
 > ~~A regra "1º dia útil do mês" do plano original foi removida (A-15)~~ — **revertido parcialmente
 > por A-38** (pedido explícito do usuário): `D` volta a ser calculado como o **N-ésimo dia ÚTIL**

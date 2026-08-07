@@ -127,6 +127,8 @@ status: rastreador
 | 2026-08-07 | A-38 | `D` volta a ser o **N-ésimo dia ÚTIL** do mês (`ALERTAS_PRAZO_DIA`; 1 = 1º dia útil, 5 = 5º dia útil), pulando sábado/domingo — reverte parcialmente A-20/A-15. Offsets D-3/D+1/D+3 seguem em dias corridos a partir dessa data. | kevin.maykel@cityinc.com.br |
 | 2026-08-07 | A-39 | `cod_contrato` passa a ser **opcional** na planilha: preenchido é preservado (identidade estável do contrato entre importações — a carga é TRUNCATE+INSERT e o recesso referencia por `cod_empresa`/`cod_contrato`); vazio, o sistema gera o próximo número livre daquela empresa, nunca reutilizando código já existente. Descartadas as alternativas de âncora `(cnpj, nome_contrato)` e "contrato ativo da vigência" — ambas quebram em renovação de contrato (mesmo CNPJ/nome, período novo). | kevin.maykel@cityinc.com.br |
 
+| 2026-08-07 | A-40 | Régua ganha **D+5** e **CORTE-10** (dia 10 fixo do mês), somando-se a D-3/D/D+1/D+3 — não substitui nenhuma. O corte avisa que nota entregue após o dia 10 não é paga naquela competência (mensagem própria, teor de prazo final) e tem **precedência** sobre offset coincidente. | kevin.maykel@cityinc.com.br |
+
 ### Decisões substituídas (histórico)
 | ID antigo | Substituído por | O que mudou |
 |---|---|---|
