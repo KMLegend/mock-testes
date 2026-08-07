@@ -14,6 +14,12 @@ import { OcorrenciaDeRecessoRepositoryEmMemoria } from '../../src/infrastructure
 import { LancarOcorrenciaDeRecesso } from '../../src/application/use-cases/LancarOcorrenciaDeRecesso';
 import { ContratoRepository } from '../../src/application/ports/ContratoRepository';
 import { UsuarioAtual } from '../../src/application/ports/UsuarioAtual';
+import { ListarContratosParaRecesso } from '../../src/application/use-cases/ListarContratosParaRecesso';
+import { OcorrenciaDeRecessoRepository } from '../../src/application/ports/OcorrenciaDeRecessoRepository';
+import { FornecedorRepository } from '../../src/application/ports/FornecedorRepository';
+import { OcorrenciaDeRecesso } from '../../src/domain/entities/OcorrenciaDeRecesso';
+import { AutorDoLancamento } from '../../src/domain/value-objects/AutorDoLancamento';
+import { OrigemDaOcorrencia } from '../../src/domain/value-objects/OrigemDaOcorrencia';
 
 const HOJE = new Date(2026, 6, 17); // 17/07/2026
 const agora = (): Date => HOJE;
@@ -227,6 +233,53 @@ describe('LancarOcorrenciaDeRecesso — competência do lançamento manual', () 
 
     expect(salvos).toHaveLength(1);
     expect(salvos[0]!.competencia).toBe('05/08/2026'); // mês de agosto, não julho
+  });
+});
+
+describe('ListarContratosParaRecesso — não deve exibir rescisão/zeramento "fantasma" duplicado', () => {
+  it('quando o backend (HTTP) já tem a rescisão gravada com ID numérico, não gera uma segunda local', async () => {
+    // Reproduz o modo HTTP: o repositório já devolve a rescisão gravada pelo backend com um
+    // ID numérico (não 'auto-rescisao-...'), e salvarVarias() não persiste o que foi passado
+    // (no HTTP real ele só dispara o processador do backend, que já é idempotente por conta
+    // própria). Antes da correção, o motor local não reconhecia o ID numérico como "já existe"
+    // e recalculava uma SEGUNDA rescisão, exibida por cima da real.
+    const c = contrato('2025-08-15', '2026-07-01'); // vigência já encerrada antes de HOJE (17/07/2026)
+    const fornecedor = new Fornecedor({
+      codEmpresa: '013', empresa: 'Teste da Silva', apelido: 'Silvas tester co.',
+      email: { paraExibicao: () => 'a@a.com' } as any, tipoInscricao: '1',
+      cnpj: { obterDigitos: () => '12123123000102' } as any, ativo: true
+    });
+
+    const rescisaoDoBackend = new OcorrenciaDeRecesso({
+      id: '56', // ID numérico do banco — não 'auto-rescisao-013-C-013'
+      codContrato: c.identificador(),
+      dataDoCalculo: HOJE,
+      competencia: CompetenciaDeRecesso.apartirDe(HOJE),
+      descricao: 'Crédito proporcional de rescisão contratual (finalização antecipada)',
+      tipo: TipoOcorrencia.credito(),
+      quantidade: QuantidadeDeDias.nenhuma(),
+      autor: AutorDoLancamento.sistema(),
+      origem: OrigemDaOcorrencia.automatico(),
+      criadoEm: HOJE
+    });
+
+    const contratoRepo: ContratoRepository = { todos: async () => [c] };
+    const fornecedorRepo: FornecedorRepository = { todos: async () => [fornecedor], ativos: async () => [fornecedor] } as any;
+    const ocorrenciaRepo: OcorrenciaDeRecessoRepository = {
+      todas: async () => [rescisaoDoBackend],
+      doContrato: async () => [rescisaoDoBackend],
+      salvar: async () => {},
+      salvarVarias: async () => {}, // como o adapter HTTP real: ignora o que foi passado
+      finalizarContratoAntecipadamente: async () => {}
+    };
+
+    const listar = new ListarContratosParaRecesso({
+      contratoRepo, fornecedorRepo, ocorrenciaRepo, motor: new MotorDeCreditoMensal(agora)
+    });
+
+    const linhas = await listar.executar();
+    const rescisoesExibidas = linhas[0]!.extrato.paraArray().filter((oc) => oc.descricao.toLowerCase().includes('rescis'));
+    expect(rescisoesExibidas).toHaveLength(1);
   });
 });
 

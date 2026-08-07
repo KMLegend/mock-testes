@@ -30,19 +30,30 @@ export class ListarContratosParaRecesso {
 
     const porCodEmpresa = new Map(fornecedores.map((pj) => [pj.codEmpresa, pj]));
 
+    let geral = await this.buscarExtratoGeral(contratos);
+
+    const novos = contratos.flatMap((contrato) => this.creditosPendentes(contrato, geral));
+    if (novos.length > 0) {
+      await this.deps.ocorrenciaRepo.salvarVarias(novos);
+      // Relê do repositório em vez de acrescentar `novos` localmente: no modo HTTP, o backend
+      // recalcula com sua PRÓPRIA idempotência (chave_auto) e os IDs não batem com os que o
+      // motor local gerou (id numérico do banco vs. string 'auto-rescisao-...' do domínio) —
+      // acrescentar `novos` direto exibia uma rescisão/zeramento "fantasma" duplicada por cima
+      // do que o backend já tinha gravado, mesmo sem duplicar nada de verdade lá.
+      geral = await this.buscarExtratoGeral(contratos);
+    }
+
+    return contratos
+      .flatMap((contrato) => this.montarLinha(contrato, porCodEmpresa, geral))
+      .sort((linhaA, linhaB) => this.ordenar(linhaA, linhaB));
+  }
+
+  private async buscarExtratoGeral(contratos: readonly Contrato[]): Promise<ExtratoDeRecesso> {
     // Busca ocorrências por contrato (o backend exige contratoId como parâmetro obrigatório).
     const ocorrenciasPorContrato = await Promise.all(
       contratos.map((contrato) => this.deps.ocorrenciaRepo.doContrato(contrato.identificador()))
     );
-    const geral = new ExtratoDeRecesso(ocorrenciasPorContrato.flat());
-
-    const novos = contratos.flatMap((contrato) => this.creditosPendentes(contrato, geral));
-    if (novos.length > 0) await this.deps.ocorrenciaRepo.salvarVarias(novos);
-
-    const atualizado = geral.acrescentar(novos);
-    return contratos
-      .flatMap((contrato) => this.montarLinha(contrato, porCodEmpresa, atualizado))
-      .sort((linhaA, linhaB) => this.ordenar(linhaA, linhaB));
+    return new ExtratoDeRecesso(ocorrenciasPorContrato.flat());
   }
 
   private creditosPendentes(contrato: Contrato, geral: ExtratoDeRecesso) {
