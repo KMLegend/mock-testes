@@ -29,7 +29,7 @@ const COLUNAS_FORNECEDORES: readonly ColunaExemplo[] = [
 
 const COLUNAS_CONTRATOS: readonly ColunaExemplo[] = [
   { nome: 'cnpj', obrigatorio: true, aceita: 'Mesmo CNPJ da aba Fornecedores', exemplo: '12.345.678/9012-34' },
-  { nome: 'cod_contrato', obrigatorio: true, aceita: 'Código do contrato no ERP', exemplo: 'CONTRATO-012-A' },
+  { nome: 'cod_contrato', obrigatorio: false, aceita: 'Deixe VAZIO em contrato novo — o sistema gera o próximo número. Preenchido, é preservado (identidade do contrato no histórico de recesso)', exemplo: '2' },
   { nome: 'nome_contrato', obrigatorio: false, aceita: 'Texto livre', exemplo: 'CONTRATO KEVIN - ADMIN' },
   { nome: 'data_inicio', obrigatorio: true, aceita: 'AAAA-MM-DD, DD/MM/AAAA ou célula formatada como data', exemplo: '15/03/2023' },
   { nome: 'data_fim', obrigatorio: false, aceita: 'Mesmos formatos de data_inicio (vazio = sem prazo definido)', exemplo: '31/12/2026' },

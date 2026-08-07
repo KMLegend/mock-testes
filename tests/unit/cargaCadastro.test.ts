@@ -59,6 +59,33 @@ describe('Carga de cadastro — validação da planilha', () => {
     expect(digitosCnpj('123')).toBe('123'); // continua reprovado depois pela validação de tamanho
   });
 
+  it('cod_contrato vazio é gerado a partir do último da empresa; preenchido é preservado', () => {
+    const { base, erros } = validarPlanilha([FORN_OK], [
+      contrato(CNPJ_OK, '2'),
+      [CNPJ_OK, '', 'Contrato Novo', '2025-08-15', '2027-08-05', '4', '22', 'City RP']
+    ]);
+    expect(erros).toHaveLength(0);
+    expect(base.contratos.map((c) => c.codContrato)).toEqual(['2', '3']);
+  });
+
+  it('cod_contrato gerado não colide com um código digitado numa linha posterior', () => {
+    // A geração roda só depois de conhecer todos os preenchidos — senão a 1ª linha (vazia)
+    // pegaria '1' e colidiria com o '1' digitado logo abaixo.
+    const { base, erros } = validarPlanilha([FORN_OK], [
+      [CNPJ_OK, '', 'Contrato Novo', '2025-08-15', '2027-08-05', '4', '22', 'City RP'],
+      contrato(CNPJ_OK, '1')
+    ]);
+    expect(erros).toHaveLength(0);
+    const codigos = base.contratos.map((c) => c.codContrato);
+    expect(codigos).toEqual(['2', '1']);
+    expect(new Set(codigos).size).toBe(2);
+  });
+
+  it('cod_contrato duplicado para o mesmo CNPJ é reprovado', () => {
+    const { erros } = validarPlanilha([FORN_OK], [contrato(CNPJ_OK, '1'), contrato(CNPJ_OK, '1')]);
+    expect(erros.some((e) => e.campo === 'cod_contrato' && e.motivo.includes('duplicado'))).toBe(true);
+  });
+
   it('CNPJ com menos de 14 dígitos é reprovado com linha e campo', () => {
     const forn = ['KEVIN LTDA', '', '', 'kevin@cityinc.com.br', '123', '1', 'Sim'];
     const { erros } = validarPlanilha([forn], []);

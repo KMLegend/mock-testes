@@ -124,6 +124,8 @@ status: rastreador
 | 2026-08-04 | A-34 | "Mês Referente" não é campo a ler — é o mês/ano de `creation_date` do chamado (resolve P-05). Confirmado com exemplo: chamado aberto 30/06 finalizado 03/07 = competência Junho. | kevin.maykel@cityinc.com.br |
 | 2026-08-04 | A-35 | Testado com token real: auth = `Authorization: Bearer` (resolve P-10); paginação usa campo `pages` do envelope, página além do total dá HTTP 404 (resolve P-17). | kevin.maykel@cityinc.com.br |
 | 2026-08-04 | A-36 | Pré-seed mensal (viés de histórico) roda dia 1; corte de dia 10 ignora chamado tardio no status; chamado Cancelado (`situation.description`) não conta (resolve P-18). | kevin.maykel@cityinc.com.br |
+| 2026-08-07 | A-38 | `D` volta a ser o **N-ésimo dia ÚTIL** do mês (`ALERTAS_PRAZO_DIA`; 1 = 1º dia útil, 5 = 5º dia útil), pulando sábado/domingo — reverte parcialmente A-20/A-15. Offsets D-3/D+1/D+3 seguem em dias corridos a partir dessa data. | kevin.maykel@cityinc.com.br |
+| 2026-08-07 | A-39 | `cod_contrato` passa a ser **opcional** na planilha: preenchido é preservado (identidade estável do contrato entre importações — a carga é TRUNCATE+INSERT e o recesso referencia por `cod_empresa`/`cod_contrato`); vazio, o sistema gera o próximo número livre daquela empresa, nunca reutilizando código já existente. Descartadas as alternativas de âncora `(cnpj, nome_contrato)` e "contrato ativo da vigência" — ambas quebram em renovação de contrato (mesmo CNPJ/nome, período novo). | kevin.maykel@cityinc.com.br |
 
 ### Decisões substituídas (histórico)
 | ID antigo | Substituído por | O que mudou |

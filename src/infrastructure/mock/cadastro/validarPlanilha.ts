@@ -1,5 +1,6 @@
 import { ErroDeImportacao } from '../../../application/ports/CargaDeCadastro';
 import { Fornecedor } from '../../../domain/entities/Fornecedor';
+import { Contrato } from '../../../domain/entities/Contrato';
 import { BaseDeCadastro } from './BaseDeCadastroStore';
 import { AbasBrutas } from './lerPlanilha';
 import { validarFornecedores } from './validarFornecedores';
@@ -12,13 +13,18 @@ export interface ResultadoValidacao {
 
 /**
  * Espelha o LeitorDePlanilha + contrato do backend (docs/backend/19 §6.4, A-37).
- * `fornecedoresAtuais` é a base já existente, usada só para o dry-run de CNPJ (reaproveitar
- * codEmpresa de empresa já cadastrada) — vazio quando não há uma base conhecida (ex.: preview
- * client-side na Fase 2, que não consulta o backend antes de confirmar).
+ * `fornecedoresAtuais`/`contratosAtuais` são a base já existente, usados só para o dry-run:
+ * reaproveitar codEmpresa de empresa já cadastrada e não gerar um codContrato que já existiu —
+ * vazios quando não há base conhecida (ex.: preview client-side na Fase 2, que não consulta o
+ * backend antes de confirmar).
  */
-export function validar(abas: AbasBrutas, fornecedoresAtuais: readonly Fornecedor[] = []): ResultadoValidacao {
+export function validar(
+  abas: AbasBrutas,
+  fornecedoresAtuais: readonly Fornecedor[] = [],
+  contratosAtuais: readonly Contrato[] = []
+): ResultadoValidacao {
   const fornecedores = validarFornecedores(abas.fornecedores, fornecedoresAtuais);
-  const contratos = validarContratos(abas.contratos, fornecedores.cnpjParaCodEmpresa);
+  const contratos = validarContratos(abas.contratos, fornecedores.cnpjParaCodEmpresa, contratosAtuais);
   return {
     base: { fornecedores: fornecedores.validos, contratos: contratos.validos },
     erros: [...fornecedores.erros, ...contratos.erros]

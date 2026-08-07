@@ -67,7 +67,7 @@ Registra os contratos dos prestadores PJ. Dita a vigência e a atividade real do
 |---|---|---|---|
 | `id_contrato` | INT IDENTITY (PK) | Sim | Identificador único surrogate |
 | `cod_empresa` | string (FK) | Sim | Vínculo com `APP.TB_DPE_GPJ_PRESTADOR.cod_empresa` |
-| `cod_contrato` | string | Sim | Código do contrato no ERP |
+| `cod_contrato` | string | Sim | Código do contrato. **Opcional na planilha (A-39):** preenchido, é preservado — é a identidade ESTÁVEL do contrato entre importações, já que a carga é TRUNCATE+INSERT (A-32) e `RECESSO_MOVIMENTO` referencia por `cod_empresa`/`cod_contrato`. Vazio, o sistema gera o próximo número livre daquela empresa (nunca reutiliza um código que já existiu, para o contrato novo não herdar o saldo do antigo). |
 | `nome_contrato` | string | Não | Descrição/Nome do contrato |
 | `data_inicio` | date | Sim | Data de início da vigência |
 | `data_fim` | date | Não | Data de término da vigência (pode ser NULL para vigência indeterminada) |
