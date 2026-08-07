@@ -173,6 +173,47 @@ describe('Domain Services', () => {
       );
     });
 
+    it('ignora contratos fora de vigência ao desambiguar — não cai em Tratamento Manual à toa', () => {
+      // Regressão: fornecedor com 2 contratos vinculados à MESMA empresa, um encerrado (2020,
+      // já vencido) e um vigente (até 2099) — antes do fix, os dois entravam na desambiguação
+      // por CNPJ e, como não havia como distinguir (mesma empresa vinculada), caía em
+      // Tratamento Manual. Com só 1 contrato realmente vigente, deve resolver sozinho.
+      const contratoEncerrado = new Contrato({
+        codEmpresa: '020', codContrato: '2', nomeContrato: 'Rei do Gado',
+        dataInicio: DataHora.de('2025-08-15'), dataFim: DataHora.de('2020-01-01'),
+        valorMensal: 3, empresaResponsavel: '22', nomeEmpresaResponsavel: 'City RP'
+      });
+      const contratoVigente = new Contrato({
+        codEmpresa: '020', codContrato: '4', nomeContrato: 'Teste Silva 123',
+        dataInicio: DataHora.de('2025-08-15'), dataFim: DataHora.de('2099-12-31'),
+        valorMensal: 4, empresaResponsavel: '22', nomeEmpresaResponsavel: 'City RP'
+      });
+      const fornecedorTeste = new Fornecedor({
+        codEmpresa: '020', empresa: 'Teste da Silva', apelido: 'Silvas tester co.',
+        email: Email.de('kevin.maykel@cityinc.com.br'), tipoInscricao: '1',
+        cnpj: Cnpj.de('12123123000102'), ativo: true
+      });
+      const chamado = new Chamado({
+        id: 'abc123', protocolo: '20001', assunto: 'Nota Fiscal Agosto',
+        dataCriacao: DataHora.de('2026-08-06 10:00:00'), dataFinalizacao: null,
+        nomeSolicitante: 'Kevin Maykel', email: Email.de('kevin.maykel@cityinc.com.br'),
+        situacaoId: '2', situacaoDescricao: 'Em Andamento', categoriaId: 'cat1',
+        categoriaNome: 'Recebimento', tipoLancamento: TipoLancamento.de('Ambas'),
+        mesReferente: Competencia.de('08', '2026'), cnpjAnexo: null
+      });
+
+      const resultado = MotorDeStatus.processar({
+        fornecedores: [fornecedorTeste],
+        chamados: [chamado],
+        contratos: [contratoEncerrado, contratoVigente],
+        cnpjTomadores
+      });
+
+      const linha = resultado.paraArray()[0];
+      expect(linha?.status.paraExibicao()).not.toBe('Tratamento Manual');
+      expect(linha?.contratoCodigo).toBe('4');
+    });
+
     it('não deve incluir fornecedores inativos', () => {
       const resultado = MotorDeStatus.processar({
         fornecedores: [fornecedorInativo],

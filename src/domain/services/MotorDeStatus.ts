@@ -34,7 +34,13 @@ export class MotorDeStatus {
 
   private static processarPj(pj: Fornecedor, ctx: ContextoProcessamento): PropsLinhaDeStatus[] {
     const chamadosPj = ctx.chamados.filter((c) => c.email.equals(pj.email));
-    const contratosPj = ctx.contratos.filter((c) => c.codEmpresa === pj.codEmpresa);
+    // Só contratos EM VIGÊNCIA entram na desambiguação — um contrato encerrado não é candidato
+    // a "qual contrato esse chamado pertence". Sem esse filtro, um fornecedor com 1 contrato
+    // ativo + 1 encerrado caía em "múltiplos contratos" à toa e ia parar em Tratamento Manual.
+    const hoje = new Date();
+    const contratosPj = ctx.contratos.filter(
+      (c) => c.codEmpresa === pj.codEmpresa && c.estaVigente(hoje)
+    );
 
     if (chamadosPj.length === 0) {
       return [MotorDeStatus.criarLinhaPendente(pj)];
